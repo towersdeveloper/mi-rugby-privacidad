@@ -86,7 +86,7 @@ input[type=range]{padding:0;accent-color:var(--ac)}
 .mon{position:absolute;right:8%;top:62px;width:64px;height:42px;background:#10202b;border:3px solid #5c7289;border-radius:6px;padding:4px}
 .mon svg{width:100%;height:100%;display:block}
 .bub{box-shadow:0 2px 0 rgba(0,0,0,.18)}
-#toast{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;background:var(--tx);color:var(--bg);padding:12px 14px;border-radius:12px;font-weight:600}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px) + var(--adh,0px));z-index:9;background:var(--tx);color:var(--bg);padding:12px 14px;border-radius:12px;font-weight:600}
 #toast[hidden]{display:none}
 .stats.s4{grid-template-columns:repeat(4,1fr)}.stats.s4 b{font-size:26px}
 .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
@@ -134,6 +134,7 @@ section .stat{background:var(--bg)}
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:0 10px}
 .mcard img{display:block;width:100%;max-height:58vh;object-fit:contain;border-radius:12px;margin-bottom:14px}
 .mcard .btn+.btn{margin-top:8px}
+.adslot .btn{margin:0 0 16px}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.mcard{animation:none}}
 .lock{height:320px;background:repeating-linear-gradient(90deg,#4a6a8c 0 62px,#34506f 62px 64px);box-shadow:0 6px 0 #1f3247}
@@ -193,19 +194,19 @@ const NAT=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePla
 const PL=n=>NAT&&window.Capacitor&&Capacitor.Plugins?Capacitor.Plugins[n]:null;
 async function syncNotifs(ask){const ln=PL('LocalNotifications');if(!ln)return;try{
  let p=await ln.checkPermissions();
- if(p.display!=='granted'){if(!ask||!S.rem.length)return;p=await ln.requestPermissions();if(p.display!=='granted'){toast('Activá las notificaciones de Mi Rugby en los ajustes del teléfono para recibir tus avisos');return}}
+ if(p.display!=='granted'){if(!ask||!S.rem.length)return;p=await ln.requestPermissions();if(p.display!=='granted'){toast('Para recibir avisos, activá las notificaciones de Mi Rugby en los ajustes del teléfono.');return}}
  const pend=await ln.getPending();if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
  const list=[];let id=1;S.rem.forEach(r=>{const [h,m]=r.h.split(':').map(Number);r.d.forEach(d=>list.push({id:id++,title:'Mi Rugby',body:r.t,schedule:{on:{weekday:d+1,hour:h,minute:m},allowWhileIdle:true},isExactNotification:false}))});
  if(list.length)await ln.schedule({notifications:list})}catch(e){}}
-async function shareNative(cv,name){const fs=PL('Filesystem'),sh=PL('Share');if(!fs||!sh){toast('No se pudo compartir la imagen');return}
- try{const r=await fs.writeFile({path:name,data:cv.toDataURL('image/png').split(',')[1],directory:'CACHE'});await sh.share({title:'Mi Rugby',files:[r.uri]})}catch(e){if(!/cancel/i.test(String((e&&e.message)||e)))toast('No se pudo compartir la imagen')}}
+async function shareNative(cv,name){const fs=PL('Filesystem'),sh=PL('Share');if(!fs||!sh){toast('No se pudo compartir la imagen.');return}
+ try{const r=await fs.writeFile({path:name,data:cv.toDataURL('image/png').split(',')[1],directory:'CACHE'});await sh.share({title:'Mi Rugby',files:[r.uri]})}catch(e){if(!/cancel/i.test(String((e&&e.message)||e)))toast('No se pudo compartir la imagen.')}}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
 const fd=d=>d.split('-').reverse().join('/');
 const opts=(a,sel)=>a.map(x=>`<option${x===sel?' selected':''}>${esc(x)}</option>`).join('');
 const applyColor=()=>{const s=document.documentElement.style;s.setProperty('--ac',S.p.c1);s.setProperty('--ac2',S.p.c2)};
-function remain(u){const ms=u-Date.now();if(ms<=0)return 'Ya cumpliste la baja';const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);return 'Vuelta en '+(d>0?d+' d '+h+' h':h+' h '+m+' min')}
+function remain(u){const ms=u-Date.now();if(ms<=0)return 'Período de baja cumplido';const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);return 'Regreso estimado en '+(d>0?d+' d '+h+' h':h+' h '+m+' min')}
 function stats(){return S.skills.map(n=>{const v=S.logs.filter(l=>l.s===n).sort((a,b)=>a.d<b.d?-1:1);return{n,c:v.length,a:avg(v.map(l=>l.v)),last:v.length?v[v.length-1].v:null,ld:v.length?v[v.length-1].d:null}})}
 function overall(){return avg(stats().filter(x=>x.a!==null).map(x=>x.a))}
 
@@ -312,13 +313,13 @@ function medal(b,on,u){
 }
 function bdata(){const ms=S.m;return{n:ms.length,mins:ms.reduce((x,m)=>x+(m.min||0),0),wins:ms.filter(m=>m.gf>m.ga).length,best:S.bronco.length?Math.min(...S.bronco.map(b=>b.t)):null,mt:Math.max(0,...ms.map(m=>(m.st&&m.st.tries)||0)),sk:Object.fromEntries(stats().map(x=>[x.n,x])),clean:ms.filter(m=>m.st&&'amarillas' in m.st&&!m.st.amarillas&&!m.st.rojas).length,safe:ms.filter(m=>m.st&&'perdidas' in m.st&&!m.st.perdidas).length}}
 const bMin=(id,tier,goal)=>({id,cat:'Minutos jugados',tier,g:'clock',name:'Minutos de '+tier,desc:`Jugá ${goal} minutos en total`,got:d=>d.mins>=goal,prog:d=>[d.mins,goal,`${d.mins} de ${goal} min`]});
-const bBro=(id,tier,sec)=>({id,cat:'Bronco',tier,g:'bolt',name:'Bronco de '+tier,desc:`Hacé el bronco en menos de ${fmt(sec)}`,got:d=>d.best!==null&&d.best<sec,prog:d=>[d.best===null?0:Math.min(sec,sec*sec/d.best),sec,d.best===null?'Todavía sin tiempos':`Tu mejor: ${fmt(d.best)}`]});
+const bBro=(id,tier,sec)=>({id,cat:'Bronco',tier,g:'bolt',name:'Bronco de '+tier,desc:`Hacé el bronco en menos de ${fmt(sec)}`,got:d=>d.best!==null&&d.best<sec,prog:d=>[d.best===null?0:Math.min(sec,sec*sec/d.best),sec,d.best===null?'Todavía sin tiempos':`Mejor marca: ${fmt(d.best)}`]});
 const bWin=(id,tier,goal)=>({id,cat:'Victorias',tier,g:'cup',name:'Victorias de '+tier,desc:`Ganá ${goal} partidos`,got:d=>d.wins>=goal,prog:d=>[d.wins,goal,`${d.wins} de ${goal} victorias`]});
 const SKMIN=5;
 const skB=n=>({id:'sk_'+n,cat:'Habilidades',tier:'mae',g:'nine',name:'Maestro en '+n,desc:`Llegá a 9 de promedio en ${n} (con al menos ${SKMIN} registros)`,got:d=>{const x=d.sk[n];return !!x&&x.c>=SKMIN&&x.a>=9},prog:d=>{const x=d.sk[n];if(!x||!x.c)return[0,9,'Todavía sin registros'];return[Math.min(9,x.a)*Math.min(x.c,SKMIN)/SKMIN,9,`Promedio ${x.a.toFixed(1)} en ${x.c} registro${x.c===1?'':'s'}${x.c<SKMIN?` (faltan ${SKMIN-x.c})`:''}`]}});
 let BADGES=[];
 const BASEB=[
- {id:'debut',cat:'Partidos',tier:'esp',g:'one',name:'Debut',desc:'Registrá tu primer partido',got:d=>d.n>=1,prog:d=>[d.n,1,'Cargá tu primer partido']},
+ {id:'debut',cat:'Partidos',tier:'esp',g:'one',name:'Debut',desc:'Registrá tu primer partido',got:d=>d.n>=1,prog:d=>[d.n,1,'Sin partidos registrados']},
  {id:'hattrick',cat:'Partidos',tier:'oro',g:'three',name:'Hat-trick',desc:'Hacé 3 tries o más en un mismo partido',got:d=>d.mt>=3,prog:d=>[d.mt,3,`Tu récord: ${d.mt} ${d.mt===1?'try':'tries'} en un partido`]},
  {id:'caballero',cat:'Partidos',tier:'esp',g:'shield',name:'Caballero',desc:'Jugá 10 partidos sin tarjetas',got:d=>d.clean>=10,prog:d=>[d.clean,10,`${d.clean} de 10 partidos sin tarjetas`]},
  {id:'manos',cat:'Partidos',tier:'plata',g:'ball',name:'Manos seguras',desc:'Jugá 5 partidos sin perder pelotas',got:d=>d.safe>=5,prog:d=>[d.safe,5,`${d.safe} de 5 partidos sin perder pelotas`]},
@@ -336,44 +337,95 @@ const nextTitle=L=>{const t=TITLES.find(x=>x[0]>L);return t?` Próximo título: 
 const one=b=>[b?1:0,1];
 const maxOf=(a,f)=>a.length?Math.max(0,...a.map(f)):0;
 const CH=[
- {t:'Cargá 3 entrenamientos esta semana',f:c=>[c.td.size,3]},
+ {t:'Registrá 3 entrenamientos esta semana',f:c=>[c.td.size,3]},
  {t:'Hacé un try en un partido',f:c=>one(c.ms.some(m=>(m.st.tries||0)>=1))},
- {t:'Puntuá todas tus habilidades al menos una vez',f:c=>{const s=new Set(c.all.map(l=>l.s));return[S.skills.filter(k=>s.has(k)).length,S.skills.length]}},
+ {t:'Calificá todas tus habilidades al menos una vez',f:c=>{const s=new Set(c.all.map(l=>l.s));return[S.skills.filter(k=>s.has(k)).length,S.skills.length]}},
  {t:'Jugá 60 minutos o más en un partido',f:c=>[Math.min(60,maxOf(c.ms,m=>m.min||0)),60]},
- {t:'Arrancá con todo: entrená el lunes o el martes',f:c=>one(c.td.has(c.wk)||c.td.has(addDays(c.wk,1)))},
- {t:'Sacá 7 o más en Velocidad y en Resistencia',f:c=>[['Velocidad','Resistencia'].filter(k=>c.all.some(l=>l.s===k&&l.v>=7)).length,2]},
- {t:'Sacá 8 o más en Tackle',f:c=>one(c.all.some(l=>l.s==='Tackle'&&l.v>=8))},
+ {t:'Registrá un entrenamiento el lunes o el martes',f:c=>one(c.td.has(c.wk)||c.td.has(addDays(c.wk,1)))},
+ {t:'Obtené 7 o más en Velocidad y en Resistencia',f:c=>[['Velocidad','Resistencia'].filter(k=>c.all.some(l=>l.s===k&&l.v>=7)).length,2]},
+ {t:'Obtené 8 o más en Tackle',f:c=>one(c.all.some(l=>l.s==='Tackle'&&l.v>=8))},
  {t:'Ganá un partido',f:c=>one(c.ms.some(m=>m.gf>m.ga))},
- {t:'Cargá 2 entrenamientos y 1 partido',f:c=>[Math.min(c.td.size,2)+Math.min(c.ms.length,1),3]},
+ {t:'Registrá 2 entrenamientos y 1 partido',f:c=>[Math.min(c.td.size,2)+Math.min(c.ms.length,1),3]},
  {t:'Jugá un partido sin tarjetas',f:c=>one(c.ms.some(m=>'amarillas' in m.st&&!m.st.amarillas&&!m.st.rojas))},
- {t:'Sacá 8 o más en Pase',f:c=>one(c.all.some(l=>l.s==='Pase'&&l.v>=8))},
+ {t:'Obtené 8 o más en Pase',f:c=>one(c.all.some(l=>l.s==='Pase'&&l.v>=8))},
  {t:'Calificá tu rendimiento con 8 o más en un partido',f:c=>one(c.ms.some(m=>m.ov>=8))},
  {t:'Entrená dos días seguidos',f:c=>one([...c.td].some(d=>c.td.has(addDays(d,1))))},
  {t:'Jugá un partido sin perder pelotas',f:c=>one(c.ms.some(m=>'perdidas' in m.st&&!m.st.perdidas))},
- {t:'Sacá 7 o más en 4 habilidades distintas',f:c=>[Math.min(4,new Set(c.all.filter(l=>l.v>=7).map(l=>l.s)).size),4]}];
+ {t:'Obtené 7 o más en 4 habilidades distintas',f:c=>[Math.min(4,new Set(c.all.filter(l=>l.v>=7).map(l=>l.s)).size),4]}];
 const chOf=wk=>{const n=Math.round((Date.parse(wk)-Date.parse('2024-01-01'))/6048e5);return CH[((n%CH.length)+CH.length)%CH.length]};
 function wctx(wk){const e=addDays(wk,6),inw=d=>d>=wk&&d<=e,all=S.logs.filter(l=>inw(l.d)),tr=all.filter(l=>!isM(l));return{wk,all,tr,td:new Set(tr.map(l=>l.d)),ms:S.m.filter(m=>inw(m.d)).map(m=>Object.assign({},m,{st:m.st||{}}))}}
 const chDone=wk=>{const r=chOf(wk).f(wctx(wk));return r[0]>=r[1]};
 function actDates(){return S.logs.map(l=>l.d).concat(S.m.map(m=>m.d),S.bronco.map(b=>b.d))}
 function streakInfo(){const ws=new Set(actDates().map(wkOf)),cw=wkOf(today());let w=ws.has(cw)?cw:addDays(cw,-7),cur=0;while(ws.has(w)){cur++;w=addDays(w,-7)}
  let best=0,run=0,prev=null;[...ws].sort().forEach(x=>{run=prev&&addDays(prev,7)===x?run+1:1;best=Math.max(best,run);prev=x});return{cur,best,ws,thisWeek:ws.has(cw)}}
+
+/* ---------- Anuncios (AdMob, solo en la app de Android) ----------
+   AD_TEST=true usa los anuncios de prueba de Google. Con la cuenta de AdMob lista,
+   se reemplazan los AD_IDS por los reales y AD_TEST pasa a false. */
+const AD_TEST=true;
+const AD_IDS={banner:'ca-app-pub-3940256099942544/9214589741',inter:'ca-app-pub-3940256099942544/1033173712',reward:'ca-app-pub-3940256099942544/5224354917'};
+const REWARD_XP=50,REWARD_MAX=2,BANNER_TABS=['habilidades','partidos','bronco','lesiones','logros','avisos'];
+if(!S.adxp||typeof S.adxp!=='object')S.adxp={};
+if(S.firstSaveDone===undefined)S.firstSaveDone=S.logs.length>0||S.m.length>0;
+const AD={ok:false,rewardReady:false,interReady:false,bannerOn:false,bannerMade:false,bh:0,pendingInter:false,waitReward:false,privacy:false};
+const adOpts=id=>({adId:id,isTesting:AD_TEST,npa:true});
+const adCount=()=>Object.values(S.adxp).reduce((a,b)=>a+(+b||0),0);
+const adToday=()=>+S.adxp[today()]||0;
+async function adsInit(){const am=PL('AdMob');if(!am)return;
+ try{let ci=await am.requestConsentInfo();
+  if(ci.isConsentFormAvailable&&ci.status==='REQUIRED')ci=await am.showConsentForm();
+  AD.privacy=ci.privacyOptionsRequirementStatus==='REQUIRED';
+  if(ci.canRequestAds===false)return}catch(e){}
+ try{await am.initialize({maxAdContentRating:'Teen'})}catch(e){return}
+ AD.ok=true;
+ am.addListener('bannerAdSizeChanged',s=>{AD.bh=(s&&s.height)||0;padBanner()});
+ am.addListener('bannerAdFailedToLoad',()=>{AD.bh=0;padBanner()});
+ am.addListener('onRewardedVideoAdReward',()=>{if(AD.waitReward){AD.waitReward=false;grantReward()}});
+ am.addListener('onRewardedVideoAdDismissed',()=>{AD.waitReward=false;AD.rewardReady=false;refreshAdBtns();prepReward()});
+ am.addListener('interstitialAdDismissed',()=>{AD.interReady=false;prepInter()});
+ prepReward();prepInter();updBanner();refreshAdBtns();
+ const pl=document.querySelector('[data-adpriv]');if(pl&&AD.privacy)pl.hidden=false}
+async function prepReward(){const am=PL('AdMob');if(!am||!AD.ok)return;
+ try{await am.prepareRewardVideoAd(adOpts(AD_IDS.reward));AD.rewardReady=true}catch(e){AD.rewardReady=false;setTimeout(prepReward,90000)}refreshAdBtns()}
+async function prepInter(){const am=PL('AdMob');if(!am||!AD.ok)return;
+ try{await am.prepareInterstitial(adOpts(AD_IDS.inter));AD.interReady=true}catch(e){AD.interReady=false;setTimeout(prepInter,90000)}}
+function adBtn(){if(!NAT||!AD.ok)return '';const left=REWARD_MAX-adToday();
+ if(left<=0)return '<button class="btn ghost adbtn" disabled>Límite diario de videos alcanzado. Disponible nuevamente mañana.</button>';
+ return `<button class="btn adbtn" data-act="rewardad"${AD.rewardReady?'':' disabled'}>${AD.rewardReady?`Ver video: +${REWARD_XP} XP (${left} ${left===1?'disponible':'disponibles'} hoy)`:'Cargando video…'}</button>`}
+function refreshAdBtns(){document.querySelectorAll('.adslot').forEach(el=>{el.innerHTML=adBtn()})}
+async function watchReward(){const am=PL('AdMob');if(!am||!AD.rewardReady||adToday()>=REWARD_MAX)return;
+ AD.rewardReady=false;AD.waitReward=true;refreshAdBtns();
+ try{await am.showRewardVideoAd()}catch(e){AD.waitReward=false;toast('El video no está disponible en este momento. Intentá más tarde.');prepReward()}}
+function grantReward(){const r0=recs(),d=today();S.adxp[d]=adToday()+1;
+ pop.push({svg:icon('skills',96),k:'Recompensa obtenida',title:`+${REWARD_XP} XP`,sub:'Los puntos se sumaron a tu progreso.'});
+ syncAll();newRecs(r0,recs());save();render();showPop()}
+function padBanner(){const ins=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom'))||0;
+ const h=AD.bannerOn?((AD.bh||60)+ins):0;document.documentElement.style.setProperty('--adh',h+'px');document.body.style.paddingBottom=h?h+'px':''}
+function updBanner(){const am=PL('AdMob');if(!am||!AD.ok)return;const want=view==='main'&&BANNER_TABS.includes(tab);
+ if(want&&!AD.bannerOn){AD.bannerOn=true;
+  (AD.bannerMade?am.resumeBanner():am.showBanner({...adOpts(AD_IDS.banner),adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:0}).then(()=>{AD.bannerMade=true})).catch(()=>{AD.bannerOn=false;padBanner()})}
+ else if(!want&&AD.bannerOn){AD.bannerOn=false;am.hideBanner().catch(()=>{})}
+ padBanner()}
+function queueInter(){if(!S.firstSaveDone){S.firstSaveDone=true;save();return}if(!AD.ok||!AD.interReady)return;AD.pendingInter=true;maybeInter()}
+function maybeInter(){const am=PL('AdMob');if(!am||!AD.pendingInter||pop.length||document.querySelector('.modal'))return;
+ AD.pendingInter=false;am.showInterstitial().catch(()=>{AD.interReady=false;prepInter()})}
 function xpInfo(){
  const tdays=new Set(S.logs.filter(l=>!isM(l)).map(l=>l.d)).size;
  const mxp=S.m.reduce((x,m)=>x+25+15*((m.st&&m.st.tries)||0)+(m.gf>m.ga?10:0),0);
  const cw=wkOf(today()),chn=[...new Set(actDates().map(wkOf))].filter(w=>w<=cw&&chDone(w)).length;
  const nb=Object.keys(S.bdg).length+Object.keys(S.sbdg).length;
- const parts=[['Entrenamientos',tdays*10],['Partidos y tries',mxp],['Tests de bronco',S.bronco.length*15],['Insignias',nb*50],['Desafíos semanales',chn*40]];
+ const parts=[['Entrenamientos',tdays*10],['Partidos y tries',mxp],['Tests de bronco',S.bronco.length*15],['Insignias',nb*50],['Desafíos semanales',chn*40],['Videos con premio',adCount()*REWARD_XP]];
  const xp=parts.reduce((a,q)=>a+q[1],0);let L=1;while(L<30&&xp>=need(L+1))L++;
  return{xp,lvl:L,title:titleOf(L),cur:xp-need(L),nxt:L<30?need(L+1)-need(L):0,parts,chn}}
 const stage=L=>L>=20?'noche':L>=10?'estadio':L>=5?'club':'barrio';
 function calc(){const x=xpInfo(),s=streakInfo(),cw=wkOf(today()),ch=chOf(cw),r=ch.f(wctx(cw));CT=Object.assign(x,{streak:s.cur,best:s.best,ws:s.ws,thisWeek:s.thisWeek,cw,ch,cc:r[0],cg:r[1],chd:r[0]>=r[1],stg:stage(x.lvl)});return CT}
 const UNLN={Vincha:'la vincha',Casco:'el casco de scrum',Dorados:'los botines dorados',Leyenda:'la camiseta de leyenda'};
 const STGN={5:'una cancha de club',10:'un estadio',20:'un estadio de noche'};
-function unlockMsg(a,b){const u=[];for(let L=a+1;L<=b;L++){Object.keys(UNL).filter(k=>UNL[k]===L).forEach(k=>u.push('Desbloqueaste '+UNLN[k]+'.'));if(STGN[L])u.push('Tu jugador ahora entrena en '+STGN[L]+'.')}return u.length?u.join(' '):'Seguí sumando XP para el próximo nivel.'}
+function unlockMsg(a,b){const u=[];for(let L=a+1;L<=b;L++){Object.keys(UNL).filter(k=>UNL[k]===L).forEach(k=>u.push('Desbloqueaste '+UNLN[k]+'.'));if(STGN[L])u.push('Tu jugador ahora entrena en '+STGN[L]+'.')}return u.length?u.join(' '):'Continuá sumando XP para alcanzar el próximo nivel.'}
 function recs(){const ms=S.m;return{tries:maxOf(ms,m=>(m.st&&m.st.tries)||0),ov:maxOf(ms,m=>m.ov||0),min:maxOf(ms,m=>m.min||0),dif:maxOf(ms,m=>m.gf>m.ga?m.gf-m.ga:0),bronco:S.bronco.length?Math.min(...S.bronco.map(b=>b.t)):0,racha:streakInfo().best}}
 const REC=[['tries','Más tries en un partido',v=>v],['ov','Mejor rendimiento en un partido',v=>v+'/10'],['min','Más minutos en un partido',v=>v+' min'],['dif','Victoria más amplia',v=>'+'+v+' puntos'],['bronco','Mejor bronco',v=>fmt(v)],['racha','Racha más larga',v=>v+(v===1?' semana':' semanas')]];
-function newRecs(a,b){['tries','ov','bronco','racha'].forEach(k=>{const o=a[k],n=b[k],lower=k==='bronco';if(o&&n&&(lower?n<o:n>o)){const r=REC.find(x=>x[0]===k);pop.push({svg:icon('trofeo',96),k:'¡Nuevo récord!',title:r[1],sub:'Antes: '+r[2](o)+'. Ahora: '+r[2](n)+'.'})}})}
-const SEAS=[{id:'hierro',name:'Hierro',tier:'plata',g:'shield',desc:'Jugá 10 partidos en la temporada',f:s=>[s.n,10]},{id:'goleador',name:'Goleador',tier:'oro',g:'ball',desc:'Hacé 10 tries en la temporada',f:s=>[s.tries,10]},{id:'constante',name:'Constante',tier:'bronce',g:'cal',desc:'Cargá 30 días de entrenamiento en la temporada',f:s=>[s.td,30]},{id:'incansable',name:'Incansable',tier:'esp',g:'clock',desc:'Jugá 800 minutos en la temporada',f:s=>[s.mins,800]}];
+function newRecs(a,b){['tries','ov','bronco','racha'].forEach(k=>{const o=a[k],n=b[k],lower=k==='bronco';if(o&&n&&(lower?n<o:n>o)){const r=REC.find(x=>x[0]===k);pop.push({svg:icon('trofeo',96),k:'Nuevo récord personal',title:r[1],sub:'Antes: '+r[2](o)+'. Ahora: '+r[2](n)+'.'})}})}
+const SEAS=[{id:'hierro',name:'Hierro',tier:'plata',g:'shield',desc:'Jugá 10 partidos en la temporada',f:s=>[s.n,10]},{id:'goleador',name:'Goleador',tier:'oro',g:'ball',desc:'Hacé 10 tries en la temporada',f:s=>[s.tries,10]},{id:'constante',name:'Constante',tier:'bronce',g:'cal',desc:'Registrá 30 días de entrenamiento en la temporada',f:s=>[s.td,30]},{id:'incansable',name:'Incansable',tier:'esp',g:'clock',desc:'Jugá 800 minutos en la temporada',f:s=>[s.mins,800]}];
 const sbName=(b,y)=>b.name+' '+y;
 function seasons(){return [...new Set(actDates().map(d=>d.slice(0,4)).concat(today().slice(0,4)))].sort().reverse()}
 function sstats(y){const ms=S.m.filter(m=>m.d.startsWith(y)),t=k=>ms.reduce((x,m)=>x+((m.st&&m.st[k])||0),0),bs=S.bronco.filter(b=>b.d.startsWith(y)),ovs=ms.filter(m=>m.ov).map(m=>m.ov);
@@ -386,15 +438,15 @@ function mstats(mk){const ms=S.m.filter(m=>m.d.startsWith(mk)),t=k=>ms.reduce((x
  const cw=wkOf(today()),wks=[...new Set(actDates().filter(d=>d.startsWith(mk)).map(wkOf))].filter(w=>w.startsWith(mk)&&w<=cw);
  return{td:new Set(S.logs.filter(l=>!isM(l)&&l.d.startsWith(mk)).map(l=>l.d)).size,n:ms.length,w:ms.filter(m=>m.gf>m.ga).length,mins:ms.reduce((x,m)=>x+(m.min||0),0),tries:t('tries'),bdg:Object.values(S.bdg).concat(Object.values(S.sbdg)).filter(d=>String(d).startsWith(mk)).length,ch:wks.filter(chDone).length,imp:imp&&imp.d>=0.1?imp:null}}
 const TIPS={
- 'Pase':['Terminá el pase con las manos apuntando al compañero: donde apuntan tus dedos, va la pelota.','Practicá pases a los dos lados: casi todos tenemos un lado flojo.'],
- 'Tackle':['Cabeza siempre al costado del rival, mejilla contra su cola. Nunca la cruces por delante.','Achicá la distancia con pasos cortos antes del contacto y apuntá a la cintura o más abajo.'],
+ 'Pase':['Terminá el pase con las manos apuntando al compañero: donde apuntan tus dedos, va la pelota.','Practicá pases hacia ambos lados para equilibrar tu lado menos hábil.'],
+ 'Tackle':['En el tackle, la cabeza va siempre al costado del rival, nunca por delante.','Achicá la distancia con pasos cortos antes del contacto y apuntá a la cintura o más abajo.'],
  'Patada':['En la patada a los palos repetí siempre la misma rutina: los mismos pasos y la misma respiración.','Mirá la pelota hasta después de pegarle: levantar la cabeza antes es el error más común.'],
- 'Ruck':['Entrá al ruck con los hombros más bajos que la cadera y empujando hacia adelante, no hacia abajo.','Llegá rápido: los primeros dos segundos del ruck definen quién se queda con la pelota.'],
- 'Line-out':['Practicá el lanzamiento contra una marca en la pared: buscá que la pelota salga recta y girando.','Usá señales simples y claras: menos confusión, más pelotas ganadas.'],
+ 'Ruck':['Entrá al ruck con los hombros más bajos que la cadera y empujando hacia adelante, no hacia abajo.','Llegá rápido al ruck: los primeros dos segundos definen la posesión.'],
+ 'Line-out':['Practicá el lanzamiento contra una marca en la pared: buscá que la pelota salga recta y girando.','Usá señales simples y claras en el line-out para reducir errores.'],
  'Scrum':['Espalda recta y cabeza arriba en el scrum: la fuerza sale de las piernas, no del cuello.','Trabajá el core en el gimnasio: un tronco fuerte te da estabilidad en el empuje.'],
  'Velocidad':['Sumá pasadas cortas de 10 a 20 metros a máxima velocidad, con descanso completo entre cada una.','En rugby la primera zancada es la que más cuenta: entrená salidas desde parado.'],
- 'Resistencia':['Hacé intervalos de 30 segundos fuerte y 30 suave: imitan el ritmo real de un partido.','Dormir bien y tomar agua también es entrenar la resistencia.']};
-const GTIPS=['Entrá en calor bien antes de entrenar: menos lesiones y más rendimiento.','Después de cada partido anotá una cosa que hiciste bien y una para mejorar.','Hablá en la cancha: un equipo que se comunica defiende mejor.','Llegá con tiempo al entrenamiento: los primeros minutos marcan el ritmo.','Estirá después de entrenar: tu cuerpo te lo va a agradecer al otro día.'];
+ 'Resistencia':['Hacé intervalos de 30 segundos fuerte y 30 suave: imitan el ritmo real de un partido.','El descanso y la hidratación también forman parte del entrenamiento de resistencia.']};
+const GTIPS=['Realizá una entrada en calor completa antes de entrenar para reducir el riesgo de lesiones.','Después de cada partido anotá una cosa que hiciste bien y una para mejorar.','Comunicate en la cancha: un equipo que se comunica defiende mejor.','Llegá con tiempo al entrenamiento: los primeros minutos marcan el ritmo de la sesión.','Estirá después de entrenar para favorecer la recuperación.'];
 function tipDay(){const day=Math.floor(Date.parse(today())/864e5),s=stats().filter(x=>x.a!==null&&TIPS[x.n]).sort((a,b)=>a.a-b.a)[0];
  if(s&&day%3!==2){const t=TIPS[s.n];return{h:'Para mejorar en '+s.n,t:t[day%t.length]}}return{h:'Consejo del día',t:GTIPS[day%GTIPS.length]}}
 function syncAll(){buildB();const d=bdata();
@@ -402,11 +454,11 @@ function syncAll(){buildB();const d=bdata();
  BADGES.forEach(b=>{const g=b.got(d);if(g&&!S.bdg[b.id]){S.bdg[b.id]=today();pop.push({svg:medal(b,true,8),k:'¡Nueva insignia!',title:b.name,sub:b.desc})}else if(!g&&S.bdg[b.id])delete S.bdg[b.id]});
  const ys=seasons(),sc={};ys.forEach(y=>sc[y]=sstats(y));
  Object.keys(S.sbdg).forEach(k=>{const [y,id]=k.split(':'),b=SEAS.find(x=>x.id===id);if(!b||!sc[y]){delete S.sbdg[k];return}const r=b.f(sc[y]);if(r[0]<r[1])delete S.sbdg[k]});
- ys.forEach(y=>SEAS.forEach(b=>{const k=y+':'+b.id,r=b.f(sc[y]);if(r[0]>=r[1]&&!S.sbdg[k]){S.sbdg[k]=today();pop.push({svg:medal(b,true,8),k:'¡Insignia de temporada!',title:sbName(b,y),sub:b.desc})}}));
+ ys.forEach(y=>SEAS.forEach(b=>{const k=y+':'+b.id,r=b.f(sc[y]);if(r[0]>=r[1]&&!S.sbdg[k]){S.sbdg[k]=today();pop.push({svg:medal(b,true,8),k:'Insignia de temporada',title:sbName(b,y),sub:b.desc})}}));
  const c=calc(),pl=S.lvl||1;
- if(c.lvl>pl)pop.push({svg:icon('skills',96),k:'¡Subiste de nivel!',title:'Nivel '+c.lvl+': '+c.title,sub:unlockMsg(pl,c.lvl)});
+ if(c.lvl>pl)pop.push({svg:icon('skills',96),k:'Nuevo nivel',title:'Nivel '+c.lvl+': '+c.title,sub:unlockMsg(pl,c.lvl)});
  S.lvl=c.lvl;
- if(c.chd&&S.chn!==c.cw){S.chn=c.cw;pop.push({svg:icon('reto',96),k:'¡Desafío cumplido!',title:c.ch.t,sub:'Ganaste 40 XP. El lunes arranca un desafío nuevo.'})}
+ if(c.chd&&S.chn!==c.cw){S.chn=c.cw;pop.push({svg:icon('reto',96),k:'Desafío completado',title:c.ch.t,sub:'+40 XP. El próximo desafío comienza el lunes.'})}
 }
 syncAll();pop=[];save();
 function showPop(){if(!pop.length||$('.modal'))return;const b=pop[0],m=document.createElement('div');m.className='modal';m.id='popm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
@@ -450,12 +502,12 @@ async function makeMonth(mk){await fontsReady();calc();const {cv,x,W,c2}=canvasB
  drawSprite(x,stand(),130,420,14);
  [['ENTRENAMIENTOS',s.td],['PARTIDOS',s.n+(s.n?` (${s.w} G)`:'')],['MINUTOS',s.mins],['TRIES',s.tries],['INSIGNIAS',s.bdg],['DESAFÍOS',s.ch]].forEach(([l,v],i)=>{const y=470+i*72;x.textAlign='left';x.fillStyle='rgba(255,255,255,.75)';x.font=`600 40px ${FNT}`;x.fillText(l,500,y);x.textAlign='right';x.fillStyle='#fff';x.font=`700 58px ${FNT}`;x.fillText(String(v),940,y)});
  x.textAlign='center';rr(x,110,990,W-220,180,26);x.fillStyle=c2;x.fill();x.fillStyle=lum(c2)>.6?'#14202c':'#ffffff';
- const msg=s.imp?`MEJORASTE +${s.imp.d.toFixed(1)} EN ${s.imp.n.toUpperCase()}`:CT.streak>1?`RACHA DE ${CT.streak} SEMANAS`:'¡A SEGUIR SUMANDO!';
+ const msg=s.imp?`MEJORASTE +${s.imp.d.toFixed(1)} EN ${s.imp.n.toUpperCase()}`:CT.streak>1?`RACHA DE ${CT.streak} SEMANAS`:'REGISTRADO CON MI RUGBY';
  fitText(x,msg,W-280,72,700);x.fillText(msg,W/2,1102);
  return cv}
-async function showShare(cvp,name){try{const cv=await cvp;shareCv=cv;shareName=name;if(NAT){const m=document.createElement('div');m.className='modal';m.id='shm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen"><button class="btn" data-act="shsend">Compartir o guardar</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m);return}cv.toBlob(b=>{if(!b){toast('No se pudo crear la imagen');return}shareBlob=b;shareName=name;const f=new File([b],name,{type:'image/png'}),can=!!(navigator.canShare&&navigator.canShare({files:[f]}));
+async function showShare(cvp,name){try{const cv=await cvp;shareCv=cv;shareName=name;if(NAT){const m=document.createElement('div');m.className='modal';m.id='shm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen"><button class="btn" data-act="shsend">Compartir o guardar</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m);return}cv.toBlob(b=>{if(!b){toast('No se pudo crear la imagen.');return}shareBlob=b;shareName=name;const f=new File([b],name,{type:'image/png'}),can=!!(navigator.canShare&&navigator.canShare({files:[f]}));
  const m=document.createElement('div');m.className='modal';m.id='shm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
- m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen">${can?'<button class="btn" data-act="shsend">Compartir</button>':''}<button class="btn${can?' ghost':''}" data-act="shdl">Descargar imagen</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m)},'image/png')}catch(e){toast('No se pudo crear la imagen')}}
+ m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen">${can?'<button class="btn" data-act="shsend">Compartir</button>':''}<button class="btn${can?' ghost':''}" data-act="shdl">Descargar imagen</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m)},'image/png')}catch(e){toast('No se pudo crear la imagen.')}}
 
 /* ---------- escenario ---------- */
 function bg(stg){const post=(l,w)=>`<div class="post${w}" style="left:${l}%"></div>`,posts=w=>post(70,w)+post(82,w)+`<div class="cb${w}" style="left:70%;width:12.5%"></div>`;
@@ -470,13 +522,14 @@ function logros(){const seg=[['prog','Progreso'],['ins','Insignias'],['temp','Te
  return `<div class="seg">${seg}</div>`+(lsub==='ins'?insignias():lsub==='temp'?temporadas():progreso())}
 function progreso(){const c=CT,cw=c.cw;
  const lv=`<section><div style="display:flex;align-items:center;gap:12px">${icon('skills',48)}<div style="flex:1;min-width:0"><h2 class="hd" style="margin:0">Nivel ${c.lvl}: ${esc(c.title)}</h2><small class="mut">${c.xp} XP en total</small></div></div><div class="bar" style="margin:10px 0 4px"><i style="width:${c.nxt?c.cur/c.nxt*100:100}%"></i></div><small class="mut">${c.nxt?`Te faltan ${c.nxt-c.cur} XP para el nivel ${c.lvl+1}.`:'Llegaste al nivel máximo.'}${nextTitle(c.lvl)}</small>
- <details style="margin-top:10px"><summary class="sub" style="cursor:pointer">Cómo se gana XP</summary><div style="margin-top:8px">${[['Día de entrenamiento cargado','+10'],['Partido jugado','+25'],['Victoria','+10'],['Cada try','+15'],['Test de bronco','+15'],['Insignia','+50'],['Desafío semanal cumplido','+40']].map(([a,b])=>`<div class="lk2"><span>${a}</span><b>${b}</b></div>`).join('')}<p class="sub" style="margin-top:8px">Desbloqueos: vincha (nivel 3), cancha de club (5), casco de scrum (6), botines dorados y estadio (10), camiseta de leyenda (15), estadio de noche (20).</p></div></details></section>`;
+ <div class="adslot" style="margin-top:12px">${adBtn()}</div>
+ <details style="margin-top:10px"><summary class="sub" style="cursor:pointer">Cómo se gana XP</summary><div style="margin-top:8px">${[['Día de entrenamiento cargado','+10'],['Partido jugado','+25'],['Victoria','+10'],['Cada try','+15'],['Test de bronco','+15'],['Insignia','+50'],['Desafío semanal cumplido','+40']].concat(NAT?[[`Video con premio (hasta ${REWARD_MAX} por día)`,`+${REWARD_XP}`]]:[]).map(([a,b])=>`<div class="lk2"><span>${a}</span><b>${b}</b></div>`).join('')}<p class="sub" style="margin-top:8px">Desbloqueos: vincha (nivel 3), cancha de club (5), casco de scrum (6), botines dorados y estadio (10), camiseta de leyenda (15), estadio de noche (20).</p></div></details></section>`;
  const wks=Array.from({length:10},(_,i)=>addDays(cw,-7*(9-i)));
- const ra=`<section><h2 class="hd">Racha semanal</h2><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${icon('fuego',48)}<div><b class="hd" style="font-size:30px;line-height:1">${c.streak} ${c.streak===1?'semana seguida':'semanas seguidas'}</b><br><small class="mut">Tu mejor racha: ${c.best} ${c.best===1?'semana':'semanas'}</small></div></div><div class="wk">${wks.map(w=>`<i class="${c.ws.has(w)?'on':''}${w===cw?' now':''}" title="Semana del ${fd(w)}"></i>`).join('')}</div><p class="sub" style="margin-top:8px">Suma cada semana en la que cargues al menos un entrenamiento, un partido o un bronco. ${c.thisWeek?'Esta semana ya sumaste.':'Esta semana todavía no cargaste nada: ¡que no se corte!'}</p></section>`;
+ const ra=`<section><h2 class="hd">Racha semanal</h2><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${icon('fuego',48)}<div><b class="hd" style="font-size:30px;line-height:1">${c.streak} ${c.streak===1?'semana seguida':'semanas seguidas'}</b><br><small class="mut">Tu mejor racha: ${c.best} ${c.best===1?'semana':'semanas'}</small></div></div><div class="wk">${wks.map(w=>`<i class="${c.ws.has(w)?'on':''}${w===cw?' now':''}" title="Semana del ${fd(w)}"></i>`).join('')}</div><p class="sub" style="margin-top:8px">Cuenta cada semana con al menos un entrenamiento, partido o test de bronco registrado. ${c.thisWeek?'Semana actual registrada.':'Registrá actividad esta semana para mantener la racha.'}</p></section>`;
  const left=7-((new Date().getDay()+6)%7),nx=chOf(addDays(cw,7));
- const de=`<section><h2 class="hd">Desafío de la semana</h2><div style="display:flex;align-items:center;gap:12px">${icon('reto',48)}<div style="flex:1;min-width:0"><b>${esc(c.ch.t)}</b><br><small class="mut">${c.chd?'¡Cumplido! Ganaste 40 XP.':`${Math.min(c.cc,c.cg)} de ${c.cg}. ${left===1?'Termina hoy.':'Quedan '+left+' días.'}`}</small></div></div><div class="bar" style="margin-top:10px"><i style="width:${Math.min(100,c.cc/c.cg*100)}%"></i></div><p class="sub" style="margin-top:8px">Completaste ${c.chn} ${c.chn===1?'desafío':'desafíos'} en total. La semana que viene: ${esc(nx.t)}.</p></section>`;
+ const de=`<section><h2 class="hd">Desafío de la semana</h2><div style="display:flex;align-items:center;gap:12px">${icon('reto',48)}<div style="flex:1;min-width:0"><b>${esc(c.ch.t)}</b><br><small class="mut">${c.chd?'Completado: +40 XP.':`${Math.min(c.cc,c.cg)} de ${c.cg}. ${left===1?'Termina hoy.':'Quedan '+left+' días.'}`}</small></div></div><div class="bar" style="margin-top:10px"><i style="width:${Math.min(100,c.cc/c.cg*100)}%"></i></div><p class="sub" style="margin-top:8px">Desafíos completados: ${c.chn}. Próximo desafío: ${esc(nx.t)}.</p></section>`;
  const r=recs(),re=`<section><h2 class="hd">Récords personales</h2>${REC.map(([k,l,f])=>`<div class="lk2"><span>${l}</span><b>${r[k]?f(r[k]):'-'}</b></div>`).join('')}</section>`;
- const s=mstats(mon),mo=`<section><h2 class="hd">Resumen del mes</h2><label>Mes<select id="monsel">${months().map(m=>`<option value="${m}"${m===mon?' selected':''}>${mName(m)}</option>`).join('')}</select></label><div class="stats s4 hd" style="margin-bottom:10px"><div class="stat"><b>${s.td}</b><span>Entrenos</span></div><div class="stat"><b>${s.n}</b><span>Partidos</span></div><div class="stat"><b>${s.mins}</b><span>Minutos</span></div><div class="stat"><b>${s.tries}</b><span>Tries</span></div></div><p class="sub">${s.w} ${s.w===1?'victoria':'victorias'}, ${s.bdg} ${s.bdg===1?'insignia':'insignias'} y ${s.ch} ${s.ch===1?'desafío cumplido':'desafíos cumplidos'}.</p>${s.imp?`<p style="margin:8px 0 0"><b>Mejoraste ${s.imp.d.toFixed(1)} puntos en ${esc(s.imp.n)}</b> respecto de tu promedio anterior.</p>`:''}<button class="btn" style="margin-top:12px" data-act="sharemon">Compartir resumen</button></section>`;
+ const s=mstats(mon),mo=`<section><h2 class="hd">Resumen del mes</h2><label>Mes<select id="monsel">${months().map(m=>`<option value="${m}"${m===mon?' selected':''}>${mName(m)}</option>`).join('')}</select></label><div class="stats s4 hd" style="margin-bottom:10px"><div class="stat"><b>${s.td}</b><span>Sesiones</span></div><div class="stat"><b>${s.n}</b><span>Partidos</span></div><div class="stat"><b>${s.mins}</b><span>Minutos</span></div><div class="stat"><b>${s.tries}</b><span>Tries</span></div></div><p class="sub">${s.w} ${s.w===1?'victoria':'victorias'}, ${s.bdg} ${s.bdg===1?'insignia':'insignias'} y ${s.ch} ${s.ch===1?'desafío cumplido':'desafíos cumplidos'}.</p>${s.imp?`<p style="margin:8px 0 0"><b>Mejoraste ${s.imp.d.toFixed(1)} puntos en ${esc(s.imp.n)}</b> respecto de tu promedio anterior.</p>`:''}<button class="btn" style="margin-top:12px" data-act="sharemon">Compartir resumen</button></section>`;
  return lv+ra+de+re+mo}
 function insignias(){
  const d=bdata(),n=BADGES.filter(b=>S.bdg[b.id]).length;
@@ -486,7 +539,7 @@ function insignias(){
 function temporadas(){const ys=seasons();if(!ys.includes(sea))sea=ys[0];const s=sstats(sea),pk=s.pat+s.fal;
  const rows=[['Partidos (G-E-P)',`${s.w}-${s.e}-${s.l}`],['Días de entrenamiento',s.td],['Titular / suplente',`${s.tit} / ${s.sup}`],['Patadas metidas',pk?`${s.pat} de ${pk} (${Math.round(s.pat/pk*100)}%)`:'-'],['Pelotas perdidas',s.perd],['Tarjetas',`${s.am} amarillas, ${s.ro} rojas`],['Rendimiento promedio',s.ov===null?'-':s.ov.toFixed(1)+'/10'],['Mejor bronco del año',s.bro?fmt(s.bro):'-']];
  const sb=SEAS.map(b=>{const k=sea+':'+b.id,on=!!S.sbdg[k],[c,g]=b.f(s);return `<div class="bd${on?'':' off'}">${medal(b,on,4)}<b class="hd">${esc(sbName(b,sea))}</b><small>${esc(b.desc)}</small>${on?`<span class="got">Ganada el ${fd(S.sbdg[k])}</span>`:`<div class="bar"><i style="width:${Math.min(100,c/g*100)}%"></i></div><small>${Math.min(c,g)} de ${g}</small>`}</div>`}).join('');
- return `<section><h2 class="hd">Temporada ${sea}</h2><label>Elegí la temporada<select id="seasel">${ys.map(y=>`<option${y===sea?' selected':''}>${y}</option>`).join('')}</select></label><div class="stats s4 hd"><div class="stat"><b>${s.n}</b><span>Partidos</span></div><div class="stat"><b>${s.w}</b><span>Victorias</span></div><div class="stat"><b>${s.tries}</b><span>Tries</span></div><div class="stat"><b>${s.mins}</b><span>Minutos</span></div></div>${rows.map(([a,b])=>`<div class="lk2"><span>${a}</span><b>${b}</b></div>`).join('')}</section><section><h2 class="hd">Insignias de la temporada</h2><p class="sub" style="margin-bottom:10px">Se reinician cada año: ganalas de nuevo en cada temporada.</p><div class="bgrid">${sb}</div></section>`}
+ return `<section><h2 class="hd">Temporada ${sea}</h2><label>Elegí la temporada<select id="seasel">${ys.map(y=>`<option${y===sea?' selected':''}>${y}</option>`).join('')}</select></label><div class="stats s4 hd"><div class="stat"><b>${s.n}</b><span>Partidos</span></div><div class="stat"><b>${s.w}</b><span>Victorias</span></div><div class="stat"><b>${s.tries}</b><span>Tries</span></div><div class="stat"><b>${s.mins}</b><span>Minutos</span></div></div>${rows.map(([a,b])=>`<div class="lk2"><span>${a}</span><b>${b}</b></div>`).join('')}</section><section><h2 class="hd">Insignias de la temporada</h2><p class="sub" style="margin-bottom:10px">Se reinician al comienzo de cada temporada.</p><div class="bgrid">${sb}</div></section>`}
 function perfil(){
  const c=CT,o=overall(),best=S.bronco.length?Math.min(...S.bronco.map(b=>b.t)):null;
  const act=S.inj.filter(i=>!i.ok),inj=act.length>0;
@@ -494,63 +547,65 @@ function perfil(){
  const last=actDates().sort().pop(),idle=last?Math.round((Date.parse(today())-Date.parse(last))/864e5):0;
  const lm=[...S.m].sort((a,b)=>a.d<b.d?1:-1)[0],won=!!lm&&lm.gf>lm.ga&&(Date.parse(today())-Date.parse(lm.d))/864e5<=7;
  const pose=inj?'lie':idle>=10?'sit':won?'cheer':'stand';
- const msg=inj?'En camilla. '+(ret?`<span data-until="${ret.until}">${remain(ret.until)}</span>`:'Sin fecha de vuelta cargada'):pose==='sit'?`Hace ${idle} días que no cargás nada. ¡Volvé a la cancha!`:pose==='cheer'?`¡Ganamos contra ${esc(lm.rival)}!`:c.streak>=2?`¡Racha de ${c.streak} semanas!`:'¡Listo para jugar!';
+ const msg=inj?'Lesionado. '+(ret?`<span data-until="${ret.until}">${remain(ret.until)}</span>`:'Sin fecha de regreso'):pose==='sit'?`Hace ${idle} días que no cargás nada. ¡Volvé a la cancha!`:pose==='cheer'?`Victoria ante ${esc(lm.rival)}`:c.streak>=2?`Racha activa: ${c.streak} semanas`:'¡Listo para jugar!';
  const glow=!inj&&c.streak>=3;
  const spr=pose==='lie'?px(lying(),6):pose==='sit'?px(stand('sit'),5):pose==='cheer'?px(stand('cheer'),5):px(stand(),6);
  const spk=glow?'<i class="spk" style="left:-12px;top:22%"></i><i class="spk" style="right:-14px;top:46%;animation-delay:.4s"></i><i class="spk" style="left:24%;top:-10px;animation-delay:.8s"></i>':'';
- const nd=S.logs.some(l=>l.d===today())?'':`<div class="warn nudge"><b>Todavía no cargaste tus habilidades de hoy.</b> Después de entrenar, anotá cómo te fue en cada una.<br><button class="btn sm" data-act="tab" data-t="habilidades">Cargar entrenamiento</button></div>`;
- const setup=(S.p.name&&S.p.club)?'':`<section id="setup"><h2 class="hd">Armá tu jugador</h2><p class="sub">Poné tu nombre y tu club una sola vez. Después se usan solos en tus partidos.</p><label>Nombre<input data-p="name" value="${esc(S.p.name)}" maxlength="30"></label><label>Tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40"></label></section>`;
+ const nd=S.logs.some(l=>l.d===today())?'':`<div class="warn nudge"><b>Sin entrenamiento registrado hoy.</b> Registrá tu sesión para seguir tu evolución.<br><button class="btn sm" data-act="tab" data-t="habilidades">Registrar entrenamiento</button></div>`;
+ const setup=(S.p.name&&S.p.club)?'':`<section id="setup"><h2 class="hd">Configurá tu perfil</h2><p class="sub">Ingresá tu nombre y tu club. Se usarán automáticamente en tus partidos.</p><label>Nombre<input data-p="name" value="${esc(S.p.name)}" maxlength="30"></label><label>Tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40"></label></section>`;
  const tip=tipDay(),eb=BADGES.filter(b=>S.bdg[b.id]);
  return `${setup}<div class="scene ${inj?'hosp':'s-'+c.stg}">${inj?HOSP:bg(c.stg)}<div class="bub">${msg}</div><div class="sh"></div>
  <button class="pl${pose==='stand'?' idle':pose==='cheer'?' cheer':''}${glow?' glow':''}" data-act="locker" aria-label="Abrir el vestuario" style="background:none;border:0;padding:0">${spr}${spk}</button><button class="btn sm lkbtn" data-act="locker">Vestuario</button></div>
- ${nd}<p class="sub" style="text-align:center;margin:0 0 12px">Tocá a tu jugador para entrar al vestuario</p>
- <div class="plate hd"><div class="n">${esc(S.p.num||'0')}</div><div><h1>${esc(S.p.name||'Tu jugador')}</h1><p>${esc(S.p.pos||'Elegí tu posición')}</p></div></div>
+ ${nd}<p class="sub" style="text-align:center;margin:0 0 12px">Tocá el jugador para personalizarlo</p>
+ <div class="plate hd"><div class="n">${esc(S.p.num||'0')}</div><div><h1>${esc(S.p.name||'Tu jugador')}</h1><p>${esc(S.p.pos||'Sin posición')}</p></div></div>
  <div class="lvl"><div class="lvt"><b class="hd">Nivel ${c.lvl}: ${esc(c.title)}</b><small>${c.nxt?`${c.cur} / ${c.nxt} XP`:'Nivel máximo'}</small></div><div class="bar"><i style="width:${c.nxt?c.cur/c.nxt*100:100}%"></i></div></div>
- <div class="duo"><button class="mini-card" data-act="tab" data-t="logros" data-sub="prog">${icon('fuego',30)}<div><b class="hd">${c.streak} ${c.streak===1?'semana':'semanas'}</b><small>${c.thisWeek?'Racha activa':'Cargá algo esta semana'}</small></div></button><button class="mini-card" data-act="tab" data-t="logros" data-sub="prog">${icon('reto',30)}<div><b class="hd">${c.chd?'¡Cumplido!':'Desafío'}</b><small>${esc(c.ch.t)}</small></div></button></div>
- <button class="btn" style="margin-bottom:16px" data-act="card">Compartir mi carta de jugador</button>
- <div class="stats hd"><div class="stat"><b>${o===null?'-':o.toFixed(1)}</b><span>Puntaje de 10</span></div><div class="stat"><b>${best?fmt(best):'-'}</b><span>Mejor bronco</span></div><div class="stat"><b>${act.length}</b><span>Lesiones activas</span></div></div>
+ <div class="adslot">${adBtn()}</div>
+ <div class="duo"><button class="mini-card" data-act="tab" data-t="logros" data-sub="prog">${icon('fuego',30)}<div><b class="hd">${c.streak} ${c.streak===1?'semana':'semanas'}</b><small>${c.thisWeek?'Racha activa':'Sin actividad esta semana'}</small></div></button><button class="mini-card" data-act="tab" data-t="logros" data-sub="prog">${icon('reto',30)}<div><b class="hd">${c.chd?'Completado':'Desafío'}</b><small>${esc(c.ch.t)}</small></div></button></div>
+ <button class="btn" style="margin-bottom:16px" data-act="card">Compartir carta de jugador</button>
+ <div class="stats hd"><div class="stat"><b>${o===null?'-':o.toFixed(1)}</b><span>Promedio general</span></div><div class="stat"><b>${best?fmt(best):'-'}</b><span>Mejor bronco</span></div><div class="stat"><b>${act.length}</b><span>Lesiones activas</span></div></div>
  <div class="tip"><b>${esc(tip.h)}</b><p>${esc(tip.t)}</p></div>
- <section><h2 class="hd">Insignias</h2>${eb.length?`<div class="strip">${eb.map(b=>medal(b,true,3)).join('')}</div>`:'<p class="sub" style="margin-bottom:10px">Todavía no ganaste ninguna. Cargá partidos y tests de bronco para empezar a sumar.</p>'}<button class="btn" data-act="tab" data-t="logros" data-sub="ins">Ver mis insignias (${eb.length} de ${BADGES.length})</button></section>
- <section><h2 class="hd">Tus datos</h2>
+ <section><h2 class="hd">Insignias</h2>${eb.length?`<div class="strip">${eb.map(b=>medal(b,true,3)).join('')}</div>`:'<p class="sub" style="margin-bottom:10px">Aún no obtuviste insignias. Registrá partidos y tests de bronco para empezar.</p>'}<button class="btn" data-act="tab" data-t="logros" data-sub="ins">Ver insignias (${eb.length} de ${BADGES.length})</button></section>
+ <section><h2 class="hd">Datos del jugador</h2>
  <label>Nombre<input data-p="name" value="${esc(S.p.name)}" maxlength="30"></label>
- <div class="row"><label>Posición<select data-p="pos"><option value="">Elegí una</option>${opts(POS,S.p.pos)}</select></label>
+ <div class="row"><label>Posición<select data-p="pos"><option value="">Seleccionar</option>${opts(POS,S.p.pos)}</select></label>
  <label>Camiseta<input data-p="num" type="number" min="1" max="99" inputmode="numeric" value="${esc(S.p.num)}"></label></div></section>
  <section><h2 class="hd">Colores del equipo</h2>
  <label>Nombre de tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40" placeholder="Tu club"></label>
- <p class="sub" style="margin-bottom:12px">Se guarda y se usa en todos tus partidos.</p>
- <div class="pv">${jersey(S.p.c1,S.p.c2,104)}<div><b class="hd" style="font-size:26px;display:block">Tus colores</b><span class="sub">Tocá un equipo o armá los tuyos.</span></div></div>
+ <p class="sub" style="margin-bottom:12px">Se usa en todos los partidos que registres.</p>
+ <div class="pv">${jersey(S.p.c1,S.p.c2,104)}<div><b class="hd" style="font-size:26px;display:block">Colores</b><span class="sub">Elegí una combinación o personalizala.</span></div></div>
  <div class="tcs">${PRE.map((t,i)=>`<button class="tc${t[1]===S.p.c1&&t[2]===S.p.c2?' on':''}" data-act="preset" data-i="${i}">${jersey(t[1],t[2],44)}<span>${t[0]}</span></button>`).join('')}</div>
  <p class="sub">Color de la camiseta</p><div class="chips">${sw(TEAMC,'c1',S.p.c1)}</div>
  <p class="sub">Color de los detalles y el short</p><div class="chips">${sw(TEAMC,'c2',S.p.c2)}</div>
  <details><summary class="sub" style="cursor:pointer">Otro color</summary><div class="row" style="margin-top:8px"><label>Camiseta<input data-p="c1" type="color" value="${S.p.c1}"></label><label>Detalles<input data-p="c2" type="color" value="${S.p.c2}"></label></div></details></section>
- <section><h2 class="hd">Vestuario</h2><p class="sub">Cambiá peinado, pelo, piel, ropa y accesorios de tu jugador.</p><button class="btn" data-act="locker">Entrar al vestuario</button></section>
- <p class="sub" style="text-align:center"><a href="privacy.html" style="color:inherit">Política de privacidad</a></p>`;
+ <section><h2 class="hd">Vestuario</h2><p class="sub">Personalizá la apariencia y los accesorios del jugador.</p><button class="btn" data-act="locker">Entrar al vestuario</button></section>
+ <p class="sub" style="text-align:center"><a href="privacy.html" style="color:inherit">Política de privacidad</a></p>
+ <p class="sub" style="text-align:center" data-adpriv ${NAT&&AD.privacy?'':'hidden'}><button class="btn sm ghost" data-act="adpriv">Opciones de privacidad de anuncios</button></p>`;
 }
 
 function habilidades(){
  const t=today(),dn=new Set(S.logs.filter(l=>l.d===t).map(l=>l.s)).size;
  const ago=d=>{const n=Math.round((Date.parse(t)-Date.parse(d))/864e5);return n<=0?'hoy':n===1?'ayer':'hace '+n+' días'};
- const bars=stats().map(x=>`<div class="sk"><div class="t"><span>${esc(x.n)}</span><span>${x.a===null?'Sin datos':x.a.toFixed(1)+'/10'}</span></div><div class="bar"><i style="width:${x.a===null?0:x.a*10}%"></i></div><small>${x.c?`${x.c} registro${x.c===1?'':'s'}, último ${x.last}/10 (${ago(x.ld)})`:'Todavía no la cargaste'}</small></div>`).join('');
+ const bars=stats().map(x=>`<div class="sk"><div class="t"><span>${esc(x.n)}</span><span>${x.a===null?'Sin datos':x.a.toFixed(1)+'/10'}</span></div><div class="bar"><i style="width:${x.a===null?0:x.a*10}%"></i></div><small>${x.c?`${x.c} registro${x.c===1?'':'s'}, último ${x.last}/10 (${ago(x.ld)})`:'Sin registros'}</small></div>`).join('');
  const recent=[...S.logs].sort((a,b)=>a.d<b.d?1:-1).slice(0,8).map(l=>`<div class="li"><div><p><b>${esc(l.s)} ${l.v}/10</b></p><small>${fd(l.d)}${l.n?' - '+esc(l.n):''}</small></div><button class="btn sm ghost" data-act="del" data-k="logs" data-id="${l.id}">Borrar</button></div>`).join('');
  const rows=S.skills.map((n,i)=>`<div class="li"><span>${esc(n)}</span><select class="mini" data-sk="${i}" aria-label="${esc(n)}"><option value="">-</option>${[1,2,3,4,5,6,7,8,9,10].map(v=>`<option>${v}</option>`).join('')}</select></div>`).join('');
- return `<div class="warn nudge"><b>Hoy cargaste ${dn} de ${S.skills.length} habilidades.</b> Después de cada entrenamiento, anotá cómo te fue en cada una para ver cómo mejorás.</div>
- <section><h2 class="hd">Cargar entrenamiento</h2><p class="sub">Poné tu puntaje de 1 a 10 en cada habilidad. Dejá el guion en las que no practicaste.</p>
+ return `<div class="warn nudge"><b>Habilidades registradas hoy: ${dn} de ${S.skills.length}.</b> Registrá cada entrenamiento para seguir tu evolución.</div>
+ <section><h2 class="hd">Registrar entrenamiento</h2><p class="sub">Calificá de 1 a 10 solo las habilidades que trabajaste. Las demás pueden quedar sin calificar.</p>
  <label>Fecha<input id="sd" type="date" value="${t}"></label>${rows}
  <label style="margin-top:10px">Nota del entrenamiento<input id="sn" maxlength="60" placeholder="Opcional"></label>
  <button class="btn" data-act="addsession">Guardar entrenamiento</button></section>
- <section><h2 class="hd">Tus habilidades</h2>${bars}
+ <section><h2 class="hd">Evolución por habilidad</h2>${bars}
  <div class="row" style="margin-top:8px;align-items:end"><label style="margin:0">Agregar habilidad<input id="ns" maxlength="24" placeholder="Ej: Maul"></label><button class="btn" style="flex:0 0 auto;width:auto" data-act="addskill">Agregar</button></div></section>
  ${recent?`<section><h2 class="hd">Últimos registros</h2>${recent}</section>`:''}`;
 }
 
 function chart(){
  const a=[...S.bronco].sort((x,y)=>x.d<y.d?-1:1);
- if(a.length<2)return '<p class="mut">Cargá al menos 2 tests para ver tu gráfico.</p>';
+ if(a.length<2)return '<p class="mut">Registrá al menos 2 tests para ver el gráfico.</p>';
  const W=300,H=130,L=40,R=12,T=14,B=26,mn=Math.min(...a.map(x=>x.t)),mx=Math.max(...a.map(x=>x.t)),r=(mx-mn)||1;
  const X=i=>L+i*(W-L-R)/(a.length-1),Y=t=>T+(t-mn)/r*(H-T-B);
  const pts=a.map((x,i)=>[X(i),Y(x.t)]);
  const lab=(x,y,t,an)=>`<text x="${x}" y="${y}" font-size="10" fill="var(--mut)" text-anchor="${an}">${t}</text>`;
- return `<svg class="ch" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de tus tiempos de bronco"><line x1="${L}" y1="${T}" x2="${W-R}" y2="${T}" stroke="var(--bd)"/><line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--bd)"/>${lab(L-4,T+4,fmt(mn),'end')}${lab(L-4,H-B+4,fmt(mx),'end')}${lab(L,H-8,fd(a[0].d).slice(0,5),'start')}${lab(W-R,H-8,fd(a[a.length-1].d).slice(0,5),'end')}<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="var(--ac)" stroke-width="2.5" stroke-linejoin="round"/>${pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${a[i].t===mn?6:4}" fill="${a[i].t===mn?'var(--ac2)':'var(--ac)'}" stroke="var(--ac)" stroke-width="2"/>`).join('')}</svg><p class="mut" style="margin:0 0 8px">Cada punto es un test. Mientras más arriba, más rápido tu tiempo. El punto grande es tu mejor tiempo.</p>`;
+ return `<svg class="ch" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de tus tiempos de bronco"><line x1="${L}" y1="${T}" x2="${W-R}" y2="${T}" stroke="var(--bd)"/><line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="var(--bd)"/>${lab(L-4,T+4,fmt(mn),'end')}${lab(L-4,H-B+4,fmt(mx),'end')}${lab(L,H-8,fd(a[0].d).slice(0,5),'start')}${lab(W-R,H-8,fd(a[a.length-1].d).slice(0,5),'end')}<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="var(--ac)" stroke-width="2.5" stroke-linejoin="round"/>${pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${a[i].t===mn?6:4}" fill="${a[i].t===mn?'var(--ac2)':'var(--ac)'}" stroke="var(--ac)" stroke-width="2"/>`).join('')}</svg><p class="mut" style="margin:0 0 8px">Cada punto es un test; más arriba indica un tiempo menor. El punto destacado es tu mejor marca.</p>`;
 }
 
 function bronco(){
@@ -560,17 +615,17 @@ function bronco(){
  <div class="row"><label>Minutos<input id="bm" type="number" min="0" max="20" inputmode="numeric" placeholder="4"></label><label>Segundos<input id="bs" type="number" min="0" max="59" inputmode="numeric" placeholder="45"></label></div>
  <label>Fecha<input id="bd" type="date" value="${today()}"></label>
  <button class="btn" data-act="addbronco">Guardar tiempo</button></section>
- <section><h2 class="hd">Tu evolución</h2>${chart()}${list||'<p class="mut">Todavía no cargaste ningún tiempo. Anotá el primero arriba.</p>'}</section>`;
+ <section><h2 class="hd">Evolución</h2>${chart()}${list||'<p class="mut">No hay tiempos registrados.</p>'}</section>`;
 }
 
 function lesiones(){
  const list=[...S.inj].sort((a,b)=>a.ok-b.ok||(a.d<b.d?1:-1)).map(i=>`<div class="li${i.ok?' ok':''}"><div><p><b>${esc(i.z)}</b> <span class="tag g-${esc(i.g)}">${esc(i.g)}</span> ${i.ok?'<span class="tag">Recuperada</span>':''}</p><small>${fd(i.d)}${i.n?' - '+esc(i.n):''}</small>${!i.ok&&i.until?`<br><small data-until="${i.until}"><b>${remain(i.until)}</b></small>`:''}</div><div style="display:flex;gap:6px"><button class="btn sm ghost" data-act="toggle" data-id="${i.id}">${i.ok?'Reabrir':'Recuperada'}</button><button class="btn sm ghost" data-act="del" data-k="inj" data-id="${i.id}">Borrar</button></div></div>`).join('');
  return `<p class="warn">Si recibiste un golpe en la cabeza, no vuelvas a jugar hasta que te revise un profesional de la salud.</p>
- <section><h2 class="hd">Anotar lesión</h2>
+ <section><h2 class="hd">Registrar lesión</h2>
  <div class="row"><label>Zona<select id="jz">${opts(ZONES)}</select></label><label>Gravedad<select id="jg">${opts(['Leve','Moderada','Grave'])}</select></label></div>
  <div class="row"><label>Tiempo de baja<input id="jt" type="number" min="1" max="365" inputmode="numeric" placeholder="Ej: 3"></label><label>Unidad<select id="ju">${opts(['semanas','días'])}</select></label></div>
  <label>Fecha de la lesión<input id="jd" type="date" value="${today()}"></label>
- <label>Nota<input id="jn" maxlength="80" placeholder="Cómo pasó, qué sentís"></label>
+ <label>Nota<input id="jn" maxlength="80" placeholder="Descripción (opcional)"></label>
  <button class="btn" data-act="addinj">Guardar lesión</button></section>
  <section><h2 class="hd">Historial</h2>${list||'<p class="mut">Sin lesiones registradas.</p>'}</section>`;
 }
@@ -585,13 +640,13 @@ function avisos(){
  const st={granted:'Avisos del celular activados',denied:'Avisos bloqueados en tu navegador',default:'Avisos del celular desactivados',na:'Tu navegador no permite avisos del celular'}[perm];
  const lbl=r=>r.d.length===7?'Todos los días':r.d.length===5?'Lunes a viernes':r.d.length===2?'Fines de semana':r.d.map(i=>dn[i]).join(', ');
  const list=[...S.rem].sort((a,b)=>a.h<b.h?-1:1).map(r=>{const hoy=r.d.includes(n.getDay()),ok=r.done===ld(),pend=hoy&&!ok&&now>=r.h;return `<div class="li${hoy?'':' ok'}"><div><p><b>${esc(r.t)}</b> ${ok?'<span class="tag">Hecho hoy</span>':pend?'<span class="tag g-Moderada">Pendiente</span>':''}</p><small>${r.h} - ${lbl(r)}</small></div><div style="display:flex;gap:6px">${hoy?`<button class="btn sm${ok?' ghost':''}" data-act="rdone" data-id="${r.id}">${ok?'Deshacer':'Hecho'}</button>`:''}<button class="btn sm ghost" data-act="del" data-k="rem" data-id="${r.id}">Borrar</button></div></div>`}).join('');
- return `<section><h2 class="hd">Nuevo aviso</h2><p class="sub">Tocá una idea o escribí la tuya.</p>
+ return `<section><h2 class="hd">Nuevo aviso</h2><p class="sub">Elegí una sugerencia o escribí uno personalizado.</p>
  <div class="chips" style="gap:6px">${PREM.map(([t,h])=>`<button class="btn sm ghost" data-act="rpre" data-v="${t}" data-h="${h}">${t}</button>`).join('')}</div>
- <label>Qué querés recordar<input id="rt" maxlength="40" placeholder="Ej: Ir al gimnasio"></label>
+ <label>Descripción<input id="rt" maxlength="40" placeholder="Ej: Ir al gimnasio"></label>
  <div class="row"><label>Hora<input id="rh" type="time" value="18:00"></label><label>Días<select id="rd">${opts(['Todos los días','Lunes a viernes','Fines de semana'])}</select></label></div>
  <button class="btn" data-act="addrem">Guardar aviso</button></section>
- <section><h2 class="hd">Tus avisos</h2>${list||'<p class="mut">Todavía no tenés avisos. Elegí una idea arriba.</p>'}</section>
- <section><h2 class="hd">Avisos en el celular</h2>${NAT?'<p class="sub">Tus avisos suenan aunque la app esté cerrada. Si no te llegan, revisá que las notificaciones de Mi Rugby estén activadas en los ajustes del teléfono. Pueden llegar con unos minutos de diferencia.</p>':`<p class="sub">${st}. Solo suenan mientras tengas la app abierta; si está cerrada, no te avisa.</p>
+ <section><h2 class="hd">Avisos programados</h2>${list||'<p class="mut">No hay avisos programados.</p>'}</section>
+ <section><h2 class="hd">Avisos en el celular</h2>${NAT?'<p class="sub">Los avisos funcionan aunque la app esté cerrada y pueden llegar con algunos minutos de diferencia. Si no llegan, verificá que las notificaciones de Mi Rugby estén activadas en los ajustes del teléfono.</p>':`<p class="sub">${st}. En esta versión, los avisos solo funcionan con la app abierta.</p>
  ${perm==='default'?'<button class="btn" style="margin-top:10px" data-act="notif">Activar avisos del celular</button>':''}`}</section>`;
 }
 
@@ -603,9 +658,9 @@ function locker(){
  return `<nav><button data-act="back">Volver</button></nav><main><h1 class="hd" style="margin:6px 0 10px;font-size:32px">Vestuario${S.p.name?' de '+esc(S.p.name):''}</h1>
  <div class="scene lock"><div class="lfloor"></div><div class="sh"></div><div class="pl" style="bottom:11%">${px(stand(),7)}</div></div>
  <section>${row('Peinado','style',esc(S.p.style))}${row('Color de pelo','hair',dot(S.p.hair))}${row('Piel','skin',dot(S.p.skin))}${row('Ropa','outfit',esc(S.p.outfit))}${row('Colores del equipo','team',jersey(S.p.c1,S.p.c2,34)+' '+(ti>=0?esc(PRE[ti][0]):'Personalizado'))}</section>
- <section><h2 class="hd">Accesorios</h2><p class="sub" style="margin-bottom:6px">Se desbloquean subiendo de nivel. Estás en el nivel ${CT.lvl}.</p>${row('Cabeza','head',lockv(S.p.head))}${row('Botines','boots',lockv(S.p.boots))}${row('Camiseta','shirt',lockv(S.p.shirt))}</section>
- <section><label>Nombre de tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40" placeholder="Tu club"></label><p class="sub">Se guarda para todos tus partidos.</p></section>
- <button class="btn" data-act="back">Listo</button></main>`;
+ <section><h2 class="hd">Accesorios</h2><p class="sub" style="margin-bottom:6px">Se desbloquean al subir de nivel. Nivel actual: ${CT.lvl}.</p>${row('Cabeza','head',lockv(S.p.head))}${row('Botines','boots',lockv(S.p.boots))}${row('Camiseta','shirt',lockv(S.p.shirt))}</section>
+ <section><label>Nombre de tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40" placeholder="Tu club"></label><p class="sub">Se usa en todos los partidos que registres.</p></section>
+ <button class="btn" data-act="back">Aceptar</button></main>`;
 }
 
 function partidos(){
@@ -617,32 +672,35 @@ function partidos(){
   return `<div class="li"><div><p><b>${esc(m.club||'Mi club')} vs ${esc(m.rival)}</b></p><p class="big hd">${m.gf} - ${m.ga} <span class="tag ${r[1]}">${r[0]}</span></p><small>${fd(m.d)}${m.tit?' - '+m.tit:''}${m.min?' - '+m.min+' min jugados':''}${m.ov?' - Rendimiento: '+m.ov+'/10':''}</small>${stt?`<br><small>${stt}</small>`:''}${sk?`<br><small>${sk}</small>`:''}${m.n?`<br><small>${esc(m.n)}</small>`:''}</div><button class="btn sm ghost" data-act="del" data-k="m" data-id="${m.id}">Borrar</button></div>`}).join('');
  const sel=[1,2,3,4,5,6,7,8,9,10].map(v=>`<option>${v}</option>`).join('');
  const nums=ST.map(([k,l])=>`<label>${l}<input id="m_${k}" type="number" min="0" max="99" inputmode="numeric" placeholder="0"></label>`).join('');
- const rows=S.skills.map((n,i)=>`<div class="li${n==='Patada'?' optional-skill':''}"><span>${esc(n)}${n==='Patada'?' <small class="mut">(opcional)</small>':''}</span><select class="mini" data-ms="${i}" aria-label="${esc(n)}"><option value="">-</option>${sel}</select></div>`).join('');
+ const rows=S.skills.map((n,i)=>`<div class="li"><span>${esc(n)}</span><select class="mini" data-ms="${i}" aria-label="${esc(n)}"><option value="">-</option>${sel}</select></div>`).join('');
  return `${sum}<section><h2 class="hd">Nuevo partido</h2>
  <label>Fecha<input id="md" type="date" value="${today()}"></label>
- ${S.p.club?`<p class="sub">Tu club: <b>${esc(S.p.club)}</b></p><label>Club rival<input id="mr" maxlength="40" placeholder="Nombre del rival"></label>`:`<div class="row"><label>Tu club<input id="mc" maxlength="40"></label><label>Club rival<input id="mr" maxlength="40" placeholder="Nombre del rival"></label></div>`}
+ ${S.p.club?`<p class="sub">Club: <b>${esc(S.p.club)}</b></p><label>Club rival<input id="mr" maxlength="40" placeholder="Nombre del rival"></label>`:`<div class="row"><label>Tu club<input id="mc" maxlength="40"></label><label>Club rival<input id="mr" maxlength="40" placeholder="Nombre del rival"></label></div>`}
  <div class="row"><label>Tus puntos<input id="mg" type="number" min="0" max="200" inputmode="numeric" placeholder="0"></label><label>Puntos del rival<input id="ma" type="number" min="0" max="200" inputmode="numeric" placeholder="0"></label></div>
- <div class="row"><label>Minutos jugados<input id="mmin" type="number" min="0" max="240" inputmode="numeric" placeholder="Ej: 80"></label><label>Arrancaste<select id="mtit"><option value="">-</option><option>Titular</option><option>Suplente</option></select></label></div>
- <p class="sub" style="margin:-4px 0 12px">Si jugaste más de dos tiempos (por ejemplo 3), poné el total: puede pasar de 80.</p>
- <label>Tu rendimiento en el partido<select id="mo"><option value="">-</option>${sel}</select></label>
+ <div class="row"><label>Minutos jugados<input id="mmin" type="number" min="0" max="240" inputmode="numeric" placeholder="Ej: 80"></label><label>Condición<select id="mtit"><option value="">-</option><option>Titular</option><option>Suplente</option></select></label></div>
+ <p class="sub" style="margin:-4px 0 12px">Ingresá el total de minutos. Puede superar 80 si jugaste más de dos tiempos.</p>
+ <label>Rendimiento general (1 a 10)<select id="mo"><option value="">-</option>${sel}</select></label>
  <p class="sub">Estadísticas del partido (opcional)</p><div class="g2">${nums}</div>
- <p class="sub" style="margin-top:6px">Calificá tus habilidades en este partido (1 a 10)</p>${rows}
+ <p class="sub" style="margin-top:6px">Habilidades (opcional): calificá de 1 a 10 solo las que aplicaron en el partido.</p>${rows}
  <label style="margin-top:10px">Nota del partido<input id="mn" maxlength="80" placeholder="Opcional"></label>
  <button class="btn" data-act="addm">Guardar partido</button></section>
- <section><h2 class="hd">Tus partidos</h2>${list||'<p class="mut">Todavía no guardaste ningún partido.</p>'}</section>`;
+ <section><h2 class="hd">Tus partidos</h2>${list||'<p class="mut">No hay partidos registrados.</p>'}</section>`;
 }
 
 function render(){
  calc();
- if(view==='locker'){$('#app').innerHTML=locker();return}
+ if(view==='locker'){$('#app').innerHTML=locker();updBanner();return}
  const v={perfil,habilidades,partidos,bronco,lesiones,avisos,logros}[tab]();
  $('#app').innerHTML=`<nav>${[['perfil','jugador','Jugador'],['habilidades','skills','Skills'],['partidos','partidos','Partidos'],['bronco','bronco','Bronco'],['lesiones','lesiones','Lesiones'],['logros','insignias','Logros'],['avisos','avisos','Avisos']].map(([k,e,l])=>`<button data-act="tab" data-t="${k}" class="${k===tab?'on':''}">${icon(e)}${l}</button>`).join('')}</nav><main>${v}</main>`;
  const on=$('nav button.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'});
+ updBanner();
 }
 
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
- if(a==='popok'){const m=$('#popm');if(m)m.remove();pop.shift();showPop();return}
+ if(a==='popok'){const m=$('#popm');if(m)m.remove();pop.shift();showPop();maybeInter();return}
+ if(a==='rewardad'){watchReward();return}
+ if(a==='adpriv'){const am=PL('AdMob');if(am)am.showPrivacyOptionsForm().catch(()=>{});return}
  if(a==='shclose'){const m=$('#shm');if(m)m.remove();showPop();return}
  if(a==='shdl'){if(shareBlob){const u=URL.createObjectURL(shareBlob),l=document.createElement('a');l.href=u;l.download=shareName;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}return}
  if(a==='shsend'){if(NAT){if(shareCv)shareNative(shareCv,shareName);return}if(shareBlob){try{navigator.share({files:[new File([shareBlob],shareName,{type:'image/png'})],title:'Mi Rugby'}).catch(()=>{})}catch(err){}}return}
@@ -651,7 +709,7 @@ document.addEventListener('click',e=>{
  if(a==='lsub'){lsub=b.dataset.v;render();return}
  const r0=recs();
  if(a==='rpre'){$('#rt').value=b.dataset.v;$('#rh').value=b.dataset.h;return}
- if(a==='notif'){try{Notification.requestPermission().then(render)}catch(e){toast('Tu navegador no permite avisos del celular')}return}
+ if(a==='notif'){try{Notification.requestPermission().then(render)}catch(e){toast('Este navegador no admite avisos.')}return}
  if(a==='tab'){tab=b.dataset.t;view='main';if(b.dataset.sub)lsub=b.dataset.sub;window.scrollTo(0,0)}
  else if(a==='locker')view='locker';
  else if(a==='back')view='main';
@@ -666,16 +724,15 @@ document.addEventListener('click',e=>{
   else if(k==='team'){const i=PRE.findIndex(x=>x[1]===S.p.c1&&x[2]===S.p.c2),n=PRE[(i+d+PRE.length)%PRE.length];S.p.c1=n[1];S.p.c2=n[2];applyColor()}}
  else if(a==='set'){S.p[b.dataset.k]=b.dataset.v;applyColor()}
  else if(a==='preset'){const p=PRE[+b.dataset.i];S.p.c1=p[1];S.p.c2=p[2];applyColor()}
- else if(a==='addsession'){const d=$('#sd').value||today(),n=$('#sn').value.trim();let c=0;document.querySelectorAll('[data-sk]').forEach(el=>{if(el.value){S.logs.push({id:uid(),d,s:S.skills[+el.dataset.sk],v:+el.value,n});c++}});if(!c)return}
+ else if(a==='addsession'){const d=$('#sd').value||today(),n=$('#sn').value.trim();let c=0;document.querySelectorAll('[data-sk]').forEach(el=>{if(el.value){S.logs.push({id:uid(),d,s:S.skills[+el.dataset.sk],v:+el.value,n});c++}});if(!c){toast('Calificá al menos una habilidad para registrar el entrenamiento.');return}}
  else if(a==='addskill'){const n=$('#ns').value.trim().slice(0,24);if(!n||S.skills.includes(n))return;S.skills.push(n);lastSkill=n}
  else if(a==='addbronco'){const t=(+$('#bm').value||0)*60+(+$('#bs').value||0);if(t<=0)return;S.bronco.push({id:uid(),d:$('#bd').value||today(),t:Math.round(t)})}
  else if(a==='addinj'){const d=$('#jd').value||today(),n=+$('#jt').value||0,k=$('#ju').value==='semanas'?7:1;
   S.inj.push({id:uid(),d,z:$('#jz').value,g:$('#jg').value,n:$('#jn').value.trim(),ok:false,until:n>0?new Date(d+'T00:00:00').getTime()+n*k*864e5:null})}
  else if(a==='addrem'){const t=$('#rt').value.trim().slice(0,40),h=$('#rh').value,k=$('#rd').value;if(!t||!h)return;S.rem.push({id:uid(),t,h,d:k==='Lunes a viernes'?[1,2,3,4,5]:k==='Fines de semana'?[0,6]:[0,1,2,3,4,5,6],last:'',done:''})}
  else if(a==='rdone'){const r=S.rem.find(x=>x.id===b.dataset.id);if(r)r.done=r.done===ld()?'':ld()}
- else if(a==='addm'){const rv=$('#mr').value.trim();if(!rv){toast('Escribí el nombre del rival');return}
-  const sels=[...document.querySelectorAll('[data-ms]')];sels.forEach(el=>{el.style.borderColor=el.value?'':'#d64545'});
-  if(sels.some(el=>!el.value && !el.closest('.optional-skill'))){toast('Calificá todas las habilidades obligatorias para guardar el partido');return}
+ else if(a==='addm'){const rv=$('#mr').value.trim();if(!rv){toast('Ingresá el nombre del rival.');return}
+  
   const club=($('#mc')?$('#mc').value.trim():'')||S.p.club||'Mi club',d=$('#md').value||today(),st={},sk={};
   ST.forEach(([k])=>{st[k]=+$('#m_'+k).value||0});
   document.querySelectorAll('[data-ms]').forEach(el=>{if(el.value){const n=S.skills[+el.dataset.ms];sk[n]=+el.value;S.logs.push({id:uid(),d,s:n,v:+el.value,n:'Partido vs '+rv})}});
@@ -684,6 +741,7 @@ document.addEventListener('click',e=>{
  else if(a==='toggle'){const i=S.inj.find(x=>x.id===b.dataset.id);if(i)i.ok=!i.ok}
  else if(a==='del'){const k=b.dataset.k;S[k]=S[k].filter(x=>x.id!==b.dataset.id)}
  syncAll();newRecs(r0,recs());save();render();showPop();
+ if(a==='addm'||a==='addsession')queueInter();
  if(a==='addrem'||(a==='del'&&b.dataset.k==='rem'))syncNotifs(a==='addrem');
 });
 document.addEventListener('change',e=>{
@@ -697,7 +755,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{if(e.target.id==='sv')$('#svv').textContent=e.target.value});
 setInterval(()=>document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'}),30000);
 $('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(check,20000);check();applyColor();render();
-if(NAT){syncNotifs(false);const ap=PL('App');if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
+if(NAT){syncNotifs(false);adsInit();const ap=PL('App');if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
 if(!NAT&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
