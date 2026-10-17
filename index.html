@@ -222,6 +222,10 @@ async function syncNotifs(ask){const ln=PL('LocalNotifications');if(!ln)return;t
  const list=[];let id=1;S.rem.forEach(r=>{const [h,m]=r.h.split(':').map(Number);r.d.forEach(d=>list.push({id:id++,title:'Mi Rugby',body:r.t,schedule:{on:{weekday:d+1,hour:h,minute:m},allowWhileIdle:true},isExactNotification:false}))});
  list.push(...smartList());
  if(list.length)await ln.schedule({notifications:list})}catch(e){}}
+async function saveNative(cv,name){const fs=PL('Filesystem');if(!fs){toast('No se pudo guardar la imagen.');return}
+ try{const n=name.replace(/\.png$/,'')+'-'+Date.now().toString(36)+'.png';
+  await fs.writeFile({path:'Pictures/Mi Rugby/'+n,data:cv.toDataURL('image/png').split(',')[1],directory:'EXTERNAL_STORAGE',recursive:true});
+  toast('Imagen guardada en la galería, en la carpeta Mi Rugby.',4000)}catch(e){toast('No se pudo guardar la imagen. Probá con Compartir.',5000)}}
 async function shareNative(cv,name){const fs=PL('Filesystem'),sh=PL('Share');if(!fs||!sh){toast('No se pudo compartir la imagen.');return}
  try{const r=await fs.writeFile({path:name,data:cv.toDataURL('image/png').split(',')[1],directory:'CACHE'});await sh.share({title:'Mi Rugby',files:[r.uri]})}catch(e){if(!/cancel/i.test(String((e&&e.message)||e)))toast('No se pudo compartir la imagen.')}}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
@@ -393,7 +397,7 @@ function streakInfo(){const ws=new Set(actDates().map(wkOf)),rs=new Set(S.rest.f
    se reemplazan los AD_IDS por los reales y AD_TEST pasa a false. */
 const AD_TEST=false;
 const AD_IDS={banner:'ca-app-pub-1767135628664952/7451260315',inter:'ca-app-pub-1767135628664952/9653172811',reward:'ca-app-pub-1767135628664952/2041266948'};
-const REWARD_XP=20,REWARD_MAX=1,BANNER_TABS=['habilidades','partidos','bronco','lesiones','logros','avisos'];
+const REWARD_XP=20,REWARD_H=7,REWARD_CD=REWARD_H*3600e3,BANNER_TABS=['habilidades','partidos','bronco','lesiones','logros','avisos'];
 if(!S.adxp||typeof S.adxp!=='object')S.adxp={};
 if(S.firstSaveDone===undefined)S.firstSaveDone=S.logs.length>0||S.m.length>0;
 const AD={ok:false,rewardReady:false,interReady:false,bannerOn:false,bannerMade:false,bh:0,pendingInter:false,waitReward:false,privacy:false};
@@ -408,29 +412,33 @@ async function adsInit(){const am=PL('AdMob');if(!am||S.noAds)return;
  try{await am.initialize({maxAdContentRating:'Teen'})}catch(e){return}
  AD.ok=true;
  if(!AD.lis){AD.lis=true;
- am.addListener('bannerAdSizeChanged',s=>{AD.bh=(s&&s.height)||0;padBanner()});
- am.addListener('bannerAdFailedToLoad',()=>{AD.bh=0;padBanner()});
+ am.addListener('bannerAdSizeChanged',s=>{AD.bh=(s&&s.height)||0;if(AD.bh)AD.bfail=false;padBanner()});
+ am.addListener('bannerAdLoaded',()=>{AD.bfail=false;padBanner()});
+ am.addListener('bannerAdFailedToLoad',()=>{AD.bh=0;AD.bfail=true;padBanner()});
  am.addListener('onRewardedVideoAdReward',()=>{if(AD.waitReward){AD.waitReward=false;grantReward()}});
  am.addListener('onRewardedVideoAdDismissed',()=>{AD.waitReward=false;AD.rewardReady=false;refreshAdBtns();prepReward()});
  am.addListener('interstitialAdDismissed',()=>{AD.interReady=false;prepInter()})}
  prepReward();prepInter();updBanner();refreshAdBtns();
  const pl=document.querySelector('[data-adpriv]');if(pl&&AD.privacy)pl.hidden=false}
 async function prepReward(){const am=PL('AdMob');if(!am||!AD.ok)return;
- try{await am.prepareRewardVideoAd(adOpts(AD_IDS.reward));AD.rewardReady=true}catch(e){AD.rewardReady=false;setTimeout(prepReward,90000)}refreshAdBtns()}
+ try{await am.prepareRewardVideoAd(adOpts(AD_IDS.reward));AD.rewardReady=true;AD.rfail=false}catch(e){AD.rewardReady=false;AD.rfail=true;setTimeout(prepReward,90000)}refreshAdBtns()}
 async function prepInter(){const am=PL('AdMob');if(!am||!AD.ok)return;
  try{await am.prepareInterstitial(adOpts(AD_IDS.inter));AD.interReady=true}catch(e){AD.interReady=false;setTimeout(prepInter,90000)}}
-function adBtn(){if(!NAT||!AD.ok)return '';const left=REWARD_MAX-adToday();
- if(left<=0)return '<button class="btn ghost adbtn" disabled>Límite diario de videos alcanzado. Disponible nuevamente mañana.</button>';
- return `<button class="btn adbtn" data-act="rewardad"${AD.rewardReady?'':' disabled'}>${AD.rewardReady?`Ver video: +${REWARD_XP} XP (${left} ${left===1?'disponible':'disponibles'} hoy)`:'Cargando video…'}</button>`}
+const adLeft=()=>{const t=+S.adLast||0,n=Date.now();if(t>n)S.adLast=n;return Math.max(0,(+S.adLast||0)+REWARD_CD-n)};
+const fmtLeft=ms=>{const m=Math.ceil(ms/60000),h=Math.floor(m/60),r=m%60;return h?`${h} h${r?' '+r+' min':''}`:`${r} min`};
+function adBtn(){if(!NAT||!AD.ok)return '';const l=adLeft();
+ if(l>0)return `<button class="btn ghost adbtn" disabled>Próximo video con premio en ${fmtLeft(l)}</button>`;
+ if(AD.rfail&&!AD.rewardReady)return '';
+ return `<button class="btn adbtn" data-act="rewardad"${AD.rewardReady?'':' disabled'}>${AD.rewardReady?`Ver video: +${REWARD_XP} XP`:'Cargando video…'}</button>`}
 function refreshAdBtns(){document.querySelectorAll('.adslot').forEach(el=>{el.innerHTML=adBtn()})}
-async function watchReward(){const am=PL('AdMob');if(!am||!AD.rewardReady||adToday()>=REWARD_MAX)return;
+async function watchReward(){const am=PL('AdMob');if(!am||!AD.rewardReady||adLeft()>0)return;
  AD.rewardReady=false;AD.waitReward=true;refreshAdBtns();
  try{await am.showRewardVideoAd()}catch(e){AD.waitReward=false;toast('El video no está disponible en este momento. Intentá más tarde.');prepReward()}}
-function grantReward(){const r0=recs(),d=today();S.adxp[d]=adToday()+1;
+function grantReward(){const r0=recs(),d=today();S.adxp[d]=adToday()+1;S.adLast=Date.now();
  pop.push({svg:icon('skills',96),k:'Recompensa obtenida',title:`+${REWARD_XP} XP`,sub:'Los puntos se sumaron a tu progreso.'});
  syncAll();newRecs(r0,recs());save();render();showPop()}
 function padBanner(){const ins=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom'))||0;
- const h=AD.bannerOn?((AD.bh||60)+ins):0;document.documentElement.style.setProperty('--adh',h+'px');document.body.style.paddingBottom=h?h+'px':''}
+ const h=AD.bannerOn&&!AD.bfail?((AD.bh||60)+ins):0;document.documentElement.style.setProperty('--adh',h+'px');document.body.style.paddingBottom=h?h+'px':''}
 function updBanner(){const am=PL('AdMob');if(!am||!AD.ok)return;const want=view==='main'&&BANNER_TABS.includes(tab);
  if(want&&!AD.bannerOn){AD.bannerOn=true;
   (AD.bannerMade?am.resumeBanner():am.showBanner({...adOpts(AD_IDS.banner),adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:0}).then(()=>{AD.bannerMade=true})).catch(()=>{AD.bannerOn=false;padBanner()})}
@@ -535,7 +543,7 @@ async function makeMonth(mk){await fontsReady();calc();const {cv,x,W,c2}=canvasB
  const msg=s.imp?`MEJORASTE +${s.imp.d.toFixed(1)} EN ${s.imp.n.toUpperCase()}`:CT.streak>1?`RACHA DE ${CT.streak} SEMANAS`:'REGISTRADO CON MI RUGBY';
  fitText(x,msg,W-280,72,700);x.fillText(msg,W/2,1102);
  return cv}
-async function showShare(cvp,name){try{const cv=await cvp;shareCv=cv;shareName=name;if(NAT){const m=document.createElement('div');m.className='modal';m.id='shm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen"><button class="btn" data-act="shsend">Compartir o guardar</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m);return}cv.toBlob(b=>{if(!b){toast('No se pudo crear la imagen.');return}shareBlob=b;shareName=name;const f=new File([b],name,{type:'image/png'}),can=!!(navigator.canShare&&navigator.canShare({files:[f]}));
+async function showShare(cvp,name){try{const cv=await cvp;shareCv=cv;shareName=name;if(NAT){const m=document.createElement('div');m.className='modal';m.id='shm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen"><button class="btn" data-act="shsave">Guardar en la galería</button><button class="btn ghost" data-act="shsend">Compartir</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m);return}cv.toBlob(b=>{if(!b){toast('No se pudo crear la imagen.');return}shareBlob=b;shareName=name;const f=new File([b],name,{type:'image/png'}),can=!!(navigator.canShare&&navigator.canShare({files:[f]}));
  const m=document.createElement('div');m.className='modal';m.id='shm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
  m.innerHTML=`<div class="mcard"><img src="${cv.toDataURL('image/png')}" alt="Vista previa de la imagen">${can?'<button class="btn" data-act="shsend">Compartir</button>':''}<button class="btn${can?' ghost':''}" data-act="shdl">Descargar imagen</button><button class="btn ghost" data-act="shclose">Cerrar</button></div>`;document.body.appendChild(m)},'image/png')}catch(e){toast('No se pudo crear la imagen.')}}
 
@@ -553,7 +561,7 @@ function logros(){const seg=[['prog','Progreso'],['ins','Insignias'],['temp','Te
 function progreso(){const c=CT,cw=c.cw;
  const lv=`<section><div style="display:flex;align-items:center;gap:12px">${icon('skills',48)}<div style="flex:1;min-width:0"><h2 class="hd" style="margin:0">Nivel ${c.lvl}: ${esc(c.title)}</h2><small class="mut">${c.xp} XP en total</small></div></div><div class="bar" style="margin:10px 0 4px"><i style="width:${c.nxt?c.cur/c.nxt*100:100}%"></i></div><small class="mut">${c.nxt?`Te faltan ${c.nxt-c.cur} XP para el nivel ${c.lvl+1}.`:'Llegaste al nivel máximo.'}${nextTitle(c.lvl)}</small>
  <div class="adslot" style="margin-top:12px">${adBtn()}</div>
- <h2 class="hd" style="margin:16px 0 6px">Cuánto XP da cada cosa</h2><div>${[['Día de entrenamiento registrado','+10'],['Partido jugado','+25'],['Victoria','+10'],['Cada try','+15'],['Test de bronco','+15'],['Insignia ganada','+50'],['Desafío semanal cumplido','+40']].concat(NAT?[[REWARD_MAX===1?'Video con premio (1 por día)':`Video con premio (hasta ${REWARD_MAX} por día)`,`+${REWARD_XP}`]]:[]).map(([a,b])=>`<div class="lk2"><span>${a}</span><b>${b}</b></div>`).join('')}<p class="sub" style="margin-top:8px">Desbloqueos: vincha (nivel 3), cancha de club (5), casco de scrum (6), botines dorados y estadio (10), camiseta de leyenda (15), estadio de noche (20).</p></div></section>`;
+ <h2 class="hd" style="margin:16px 0 6px">Tabla de XP</h2><div>${[['Día de entrenamiento registrado','+10'],['Partido jugado','+25'],['Victoria','+10'],['Cada try','+15'],['Test de bronco','+15'],['Insignia ganada','+50'],['Desafío semanal cumplido','+40']].concat(NAT?[[`Video con premio (1 cada ${REWARD_H} horas)`,`+${REWARD_XP}`]]:[]).map(([a,b])=>`<div class="lk2"><span>${a}</span><b>${b}</b></div>`).join('')}<p class="sub" style="margin-top:8px">Desbloqueos: vincha (nivel 3), cancha de club (5), casco de scrum (6), botines dorados y estadio (10), camiseta de leyenda (15), estadio de noche (20).</p></div></section>`;
  const wks=Array.from({length:10},(_,i)=>addDays(cw,-7*(9-i)));
  const ra=`<section><h2 class="hd">Racha semanal</h2><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">${icon('fuego',48)}<div><b class="hd" style="font-size:30px;line-height:1">${c.streak} ${c.streak===1?'semana seguida':'semanas seguidas'}</b><br><small class="mut">Tu mejor racha: ${c.best} ${c.best===1?'semana':'semanas'}</small></div></div><div class="wk">${wks.map(w=>`<i class="${c.ws.has(w)?'on':c.rs.has(w)?'rest':''}${w===cw?' now':''}" title="Semana del ${fd(w)}"></i>`).join('')}</div><p class="sub wkleg"><i class="on"></i> con actividad <i class="rest"></i> descanso</p><p class="sub" style="margin-top:8px">Cuenta cada semana con al menos un entrenamiento, partido o test de bronco registrado. ${c.thisWeek?'Semana actual registrada.':c.rest?'Semana actual en descanso.':'Registrá actividad esta semana para mantener la racha.'}</p>${restBox(c)}</section>`;
  const left=7-((new Date().getDay()+6)%7),nx=chOf(addDays(cw,7));
@@ -762,6 +770,7 @@ document.addEventListener('click',e=>{
  if(a==='adpriv'){const am=PL('AdMob');if(am)am.showPrivacyOptionsForm().catch(()=>{});return}
  if(a==='shclose'){const m=$('#shm');if(m)m.remove();showPop();return}
  if(a==='shdl'){if(shareBlob){const u=URL.createObjectURL(shareBlob),l=document.createElement('a');l.href=u;l.download=shareName;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}return}
+ if(a==='shsave'){if(shareCv)saveNative(shareCv,shareName);return}
  if(a==='shsend'){if(NAT){if(shareCv)shareNative(shareCv,shareName);return}if(shareBlob){try{navigator.share({files:[new File([shareBlob],shareName,{type:'image/png'})],title:'Mi Rugby'}).catch(()=>{})}catch(err){}}return}
  if(a==='card'){showShare(makeCard(),'mi-carta-rugby.png');return}
  if(a==='sharemon'){showShare(makeMonth(mon),'resumen-'+mon+'.png');return}
@@ -817,7 +826,7 @@ document.addEventListener('change',e=>{
 });
 document.addEventListener('input',e=>{if(e.target.id==='sv')$('#svv').textContent=e.target.value});
 setInterval(()=>document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'}),30000);
-$('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(check,20000);check();applyColor();render();
+$('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(()=>{if(AD.ok)refreshAdBtns()},30000);setInterval(check,20000);check();applyColor();render();
 if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
 if(!NAT&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
