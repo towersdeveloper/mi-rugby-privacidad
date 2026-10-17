@@ -735,6 +735,17 @@ function render(){
  updBanner();
 }
 
+/* Actualizaciones dentro de la app (Google Play). Solo pregunta si hay una versión nueva que todavía no se instaló. */
+let updLis=false;
+async function updReady(){const au=PL('AppUpdate');if(!au)return;
+ if(confirm('La actualización de Mi Rugby está lista. ¿Querés reiniciar la app para instalarla?')){try{await au.completeFlexibleUpdate()}catch(e){}}}
+async function checkUpd(){const au=PL('AppUpdate');if(!au)return;
+ try{const i=await au.getAppUpdateInfo();
+  if(i.installStatus===11){updReady();return}
+  if(i.updateAvailability!==2||!i.flexibleUpdateAllowed||S.updAsk===today())return;
+  S.updAsk=today();save();
+  if(!updLis){updLis=true;au.addListener('onFlexibleUpdateStateChange',st=>{if(st&&st.installStatus===11)updReady()})}
+  await au.startFlexibleUpdate()}catch(e){}}
 async function ownerTap(){if(!NAT)return;ownTap=(Date.now()-ownT<1500?ownTap:0)+1;ownT=Date.now();if(ownTap<7)return;ownTap=0;
   if(!S.noAds){const c=(prompt('Código')||'').trim().toUpperCase();if(!c)return;let h='';try{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mirugby:'+c));h=[...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){}
    if(h!=='993d37a1d3c94e773145ed0e3b77fdaeb4f06cafbdef6707a27561e2d3b0e44f'){toast('Código incorrecto.',3000);return}}
@@ -807,7 +818,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{if(e.target.id==='sv')$('#svv').textContent=e.target.value});
 setInterval(()=>document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'}),30000);
 $('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(check,20000);check();applyColor();render();
-if(NAT){syncNotifs(false);adsInit();const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
+if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
 if(!NAT&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
