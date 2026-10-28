@@ -476,7 +476,7 @@ function unlockMsg(a,b){const u=[];for(let L=a+1;L<=b;L++){Object.keys(UNL).filt
 function recs(){const ms=S.m;return{tries:maxOf(ms,m=>(m.st&&m.st.tries)||0),ov:maxOf(ms,m=>m.ov||0),min:maxOf(ms,m=>m.min||0),dif:maxOf(ms,m=>m.gf>m.ga?m.gf-m.ga:0),bronco:S.bronco.length?Math.min(...S.bronco.map(b=>b.t)):0,racha:streakInfo().best}}
 const REC=[['tries','Más tries en un partido',v=>v],['ov','Mejor rendimiento en un partido',v=>v+'/10'],['min','Más minutos en un partido',v=>v+' min'],['dif','Victoria más amplia',v=>'+'+v+' puntos'],['bronco','Mejor bronco',v=>fmt(v)],['racha','Racha más larga',v=>v+(v===1?' semana':' semanas')]];
 function newRecs(a,b){['tries','ov','bronco'].forEach(k=>{const o=a[k],n=b[k],lower=k==='bronco';if(o&&n&&(lower?n<o:n>o)){const r=REC.find(x=>x[0]===k);pop.push({svg:icon('trofeo',96),k:'Nuevo récord personal',title:r[1],sub:'Antes: '+r[2](o)+'. Ahora: '+r[2](n)+'.'})}})}
-const SEAS=[{id:'hierro',name:'Hierro',tier:'plata',g:'shield',desc:'Jugá 10 partidos en la temporada',f:s=>[s.n,10]},{id:'goleador',name:'Goleador',tier:'oro',g:'ball',desc:'Hacé 10 tries en la temporada',f:s=>[s.tries,10]},{id:'constante',name:'Constante',tier:'bronce',g:'cal',desc:'Registrá 30 días de entrenamiento en la temporada',f:s=>[s.td,30]},{id:'incansable',name:'Incansable',tier:'esp',g:'clock',desc:'Jugá 800 minutos en la temporada',f:s=>[s.mins,800]}];
+const SEAS=[{id:'hierro',name:'Hierro',tier:'plata',g:'shield',desc:'Jugá 10 partidos en el campeonato',f:s=>[s.n,10]},{id:'goleador',name:'Goleador',tier:'oro',g:'ball',desc:'Hacé 10 tries en el campeonato',f:s=>[s.tries,10]},{id:'constante',name:'Constante',tier:'bronce',g:'cal',desc:'Registrá 30 días de entrenamiento en el campeonato',f:s=>[s.td,30]},{id:'incansable',name:'Incansable',tier:'esp',g:'clock',desc:'Jugá 800 minutos en el campeonato',f:s=>[s.mins,800]}];
 const sbName=(b,y)=>b.name+' '+y;
 function seasons(){return [...new Set(actDates().map(d=>d.slice(0,4)).concat(today().slice(0,4)))].sort().reverse()}
 function sstats(y){const ms=S.m.filter(m=>m.d.startsWith(y)),t=k=>ms.reduce((x,m)=>x+((m.st&&m.st[k])||0),0),bs=S.bronco.filter(b=>b.d.startsWith(y)),ovs=ms.filter(m=>m.ov).map(m=>m.ov);
@@ -503,9 +503,7 @@ function tipDay(){const day=Math.floor(Date.parse(today())/864e5),s=stats().filt
 function syncAll(){buildB();const d=bdata();
  Object.keys(S.bdg).forEach(k=>{if(!BADGES.some(b=>b.id===k))delete S.bdg[k]});
  BADGES.forEach(b=>{const g=b.got(d);if(g&&!S.bdg[b.id]){S.bdg[b.id]=today();pop.push({svg:medal(b,true,8),k:'¡Nueva insignia!',title:b.name,sub:b.desc})}else if(!g&&S.bdg[b.id])delete S.bdg[b.id]});
- const _at=activeTemp();
- if(_at){_at.badges=_at.badges||[];const _ss=tempStats(_at);
-  SEAS.forEach(b=>{const r=b.f(_ss);if(r[0]>=r[1]&&!_at.badges.includes(b.id)){_at.badges.push(b.id);pop.push({svg:medal(b,true,8),k:'Insignia de temporada',title:b.name+' \u00b7 '+_at.name,sub:b.desc})}})}
+ S.temps.filter(t=>!t.end).forEach(_at=>{_at.badges=_at.badges||[];const _ss=tempStats(_at);SEAS.forEach(b=>{const r=b.f(_ss);if(r[0]>=r[1]&&!_at.badges.includes(b.id)){_at.badges.push(b.id);pop.push({svg:medal(b,true,8),k:'Insignia de campeonato',title:b.name+' \u00b7 '+_at.name,sub:b.desc})}})});
  const c=calc(),pl=S.lvl||1;
  if(c.lvl>pl)pop.push({svg:icon('skills',96),k:'Nuevo nivel',title:'Nivel '+c.lvl+': '+c.title,sub:unlockMsg(pl,c.lvl)});
  S.lvl=c.lvl;
@@ -569,8 +567,8 @@ function bg(stg){const post=(l,w)=>`<div class="post${w}" style="left:${l}%"></d
 
 /* ---------- pestaña Logros ---------- */
 let lsub='prog',mon=today().slice(0,7),sea=today().slice(0,4);
-function logros(){const seg=[['prog','Progreso'],['ins','Insignias'],['temp','Temporadas'],['vit','Vitrina']].map(([k,l])=>`<button class="${k===lsub?'on':''}" data-act="lsub" data-v="${k}">${l}</button>`).join('');
- return `<div class="seg">${seg}</div>`+(lsub==='ins'?insignias():lsub==='temp'?temporadas():lsub==='vit'?vitrina():progreso())}
+function logros(){const seg=[['prog','Progreso'],['ins','Insignias']].map(([k,l])=>`<button class="${k===lsub?'on':''}" data-act="lsub" data-v="${k}">${l}</button>`).join('');
+ return `<div class="seg">${seg}</div>`+(lsub==='ins'?insignias():progreso())}
 function progreso(){const c=CT,cw=c.cw;
  const lv=`<section><div style="display:flex;align-items:center;gap:12px">${icon('skills',48)}<div style="flex:1;min-width:0"><h2 class="hd" style="margin:0">Nivel ${c.lvl}: ${esc(c.title)}</h2><small class="mut">${c.xp} XP en total</small></div></div><div class="bar" style="margin:10px 0 4px"><i style="width:${c.nxt?c.cur/c.nxt*100:100}%"></i></div><small class="mut">${c.nxt?`Te faltan ${c.nxt-c.cur} XP para el nivel ${c.lvl+1}.`:'Llegaste al nivel máximo.'}${nextTitle(c.lvl)}</small>
  <div class="adslot" style="margin-top:12px">${adBtn()}</div>
@@ -589,7 +587,7 @@ function insignias(){
  const d=bdata(),n=BADGES.filter(b=>S.bdg[b.id]).length;
  const cats=[...new Set(BADGES.map(b=>b.cat))].map(cat=>`<section><h2 class="hd">${cat}</h2><div class="bgrid">${BADGES.filter(b=>b.cat===cat).map(b=>{const on=!!S.bdg[b.id],[c,g,t]=b.prog(d);
   return `<div class="bd${on?'':' off'}">${medal(b,on,4)}<b class="hd">${esc(b.name)}</b><small>${esc(b.desc)}</small>${on?`<span class="got">Ganada el ${fd(S.bdg[b.id])}</span>`:`<div class="bar"><i style="width:${Math.max(0,Math.min(100,c/g*100))}%"></i></div><small>${esc(t)}</small>`}</div>`}).join('')}</div></section>`).join('');
- return `<div class="prog"><b class="hd" style="font-size:24px">${n} de ${BADGES.length}</b><div class="bar"><i style="width:${n/BADGES.length*100}%"></i></div></div>${cats}<p class="sub">Las insignias de cada temporada están en la sección Temporadas.</p>`}
+ return `<div class="prog"><b class="hd" style="font-size:24px">${n} de ${BADGES.length}</b><div class="bar"><i style="width:${n/BADGES.length*100}%"></i></div></div>${cats}<p class="sub">Las medallas de campeonato están en la sección Campeonatos.</p>`}
 function activeTemp(){return S.temps.find(t=>!t.end)||null;}
 function tempStats(t){const to=t.end||today(),inR=d=>d>=t.start&&d<=to,ids=new Set(t.mids||[]);
  const ms=S.m.filter(m=>ids.has(m.id)),tk=k=>ms.reduce((x,m)=>x+((m.st&&m.st[k])||0),0),bs=S.bronco.filter(b=>inR(b.d)),ovs=ms.filter(m=>m.ov).map(m=>m.ov);
@@ -600,15 +598,13 @@ const cup=(p,u)=>medal({tier:p===1?'oro':p===2?'plata':'bronce',g:'cup',name:pla
 function seasonMedals(t,ss){ss=ss||tempStats(t);return SEAS.map(b=>{const on=(t.badges||[]).includes(b.id),r=b.f(ss),c=r[0],g=r[1];return `<div class="bd${on?'':' off'}">${medal(b,on,4)}<b class="hd">${esc(b.name)}</b><small>${esc(b.desc)}</small>${on?`<span class="got">Ganada</span>`:`<div class="bar"><i style="width:${Math.min(100,c/g*100)}%"></i></div><small>${Math.min(c,g)} de ${g}</small>`}</div>`}).join('');}
 function tempCard(t){const ss=tempStats(t),nb=(t.badges||[]).length,pod=t.place>=1&&t.place<=3;
  return `<div class="tcard">${pod?`<div class="tcup">${cup(t.place,3)}</div>`:''}<div class="tinfo"><b class="hd">${esc(t.name)}</b><br><small class="mut">${fd(t.start)} – ${fd(t.end)}</small><p class="sub" style="margin:4px 0 0">${ss.n} partidos · ${ss.w}-${ss.e}-${ss.l} · ${ss.tries} tries${nb?` · ${nb} insignia${nb===1?'':'s'}`:''}</p>${pod?`<p class="sub" style="margin:2px 0 0;color:var(--ac)"><b>${placeName(t.place)}</b></p>`:''}<button class="btn sm ghost" data-act="delseason" data-id="${t.id}" style="margin-top:6px">Eliminar</button></div></div>`;}
-function temporadas(){const at=activeTemp();let head;
- if(at){const ss=tempStats(at);
-  const stt=`<div class="stats s4 hd"><div class="stat"><b>${ss.n}</b><span>Partidos</span></div><div class="stat"><b>${ss.w}</b><span>Victorias</span></div><div class="stat"><b>${ss.tries}</b><span>Tries</span></div><div class="stat"><b>${ss.mins}</b><span>Minutos</span></div></div>`;
-  const ending=S.tempEnding===at.id?`<div class="restbox on"><b>¿En qué puesto terminaste?</b><p class="sub" style="margin:4px 0 8px">Si quedaste en el podio, ganás una copa para tu vitrina.</p><div class="pchoice"><button class="btn sm" data-act="finseason" data-pl="1">Campeón (1°)</button><button class="btn sm" data-act="finseason" data-pl="2">Subcampeón (2°)</button><button class="btn sm" data-act="finseason" data-pl="3">Tercero (3°)</button><button class="btn sm ghost" data-act="finseason" data-pl="0">Otro puesto</button></div><button class="btn sm ghost" data-act="cancelend" style="margin-top:6px">Cancelar</button></div>`:`<button class="btn" data-act="endseason" style="margin-top:12px">Finalizar temporada</button>`;
-  head=`<section><h2 class="hd">${esc(at.name)}</h2><p class="sub">En curso desde el ${fd(at.start)}.</p>${stt}<h2 class="hd" style="margin-top:14px">Insignias de la temporada</h2><div class="bgrid">${seasonMedals(at,ss)}</div>${ending}<button class="btn sm ghost" data-act="delseason" data-id="${at.id}" style="margin-top:8px">Eliminar temporada</button></section>`;
- }else if(S.tempPick){const asg=new Set();S.temps.forEach(t=>(t.mids||[]).forEach(id=>asg.add(id)));const un=[...S.m].filter(m=>!asg.has(m.id)).sort((a,b)=>a.d<b.d?1:-1);const items=un.map(m=>`<label class="pick"><input type="checkbox" data-pick value="${m.id}"><span>${esc(m.club||'Mi club')} vs ${esc(m.rival)} <small class="mut">${fd(m.d)} · ${m.gf}-${m.ga}</small></span></label>`).join('');head=`<section><h2 class="hd">La temporada ya arrancó</h2><p class="sub">Poné el nombre y elegí los partidos que ya forman parte de esta temporada.</p><label>Nombre de la temporada<input id="tpname" maxlength="30" value="Temporada ${new Date().getFullYear()}"></label><div class="picklist">${items}</div><button class="btn" data-act="createpast" style="margin-top:10px">Crear temporada</button><button class="btn sm ghost" data-act="cancelpast" style="margin-top:6px">Cancelar</button></section>`;}else{head=`<section><h2 class="hd">Temporada</h2><p class="sub">Marcá el inicio de tu temporada para llevar un registro aparte. Al terminarla guardás el puesto en que quedaste, y las copas del podio van a tu vitrina.</p><button class="btn" data-act="startseason">Iniciar temporada</button><button class="btn sm ghost" data-act="alreadystarted" style="margin-top:8px">La temporada ya arrancó</button></section>`;}
+function campeonatos(){
+ const act=S.temps.filter(t=>!t.end);let head;
+ if(S.tempPick){const asg=new Set();S.temps.forEach(t=>(t.mids||[]).forEach(id=>asg.add(id)));const un=[...S.m].filter(m=>!asg.has(m.id)).sort((a,b)=>a.d<b.d?1:-1);const items=un.map(m=>`<label class="pick"><input type="checkbox" data-pick value="${m.id}"><span>${esc(m.club||'Mi club')} vs ${esc(m.rival)} <small class="mut">${fd(m.d)} · ${m.gf}-${m.ga}</small></span></label>`).join('');head=`<section><h2 class="hd">El campeonato ya arrancó</h2><p class="sub">Poné el nombre y elegí los partidos que ya forman parte de este campeonato.</p><label>Nombre del campeonato<input id="tpname" maxlength="30" value="Campeonato ${new Date().getFullYear()}"></label><div class="picklist">${items}</div><button class="btn" data-act="createpast" style="margin-top:10px">Crear campeonato</button><button class="btn sm ghost" data-act="cancelpast" style="margin-top:6px">Cancelar</button></section>`;}
+ else{const actHtml=act.map(t=>{const ss=tempStats(t);const stt=`<div class="stats s4 hd"><div class="stat"><b>${ss.n}</b><span>Partidos</span></div><div class="stat"><b>${ss.w}</b><span>Victorias</span></div><div class="stat"><b>${ss.tries}</b><span>Tries</span></div><div class="stat"><b>${ss.mins}</b><span>Minutos</span></div></div>`;const ending=S.tempEnding===t.id?`<div class="restbox on"><b>¿En qué puesto terminaste?</b><p class="sub" style="margin:4px 0 8px">Si quedaste en el podio, ganás una copa para tu vitrina.</p><div class="pchoice"><button class="btn sm" data-act="finseason" data-pl="1">Campeón (1°)</button><button class="btn sm" data-act="finseason" data-pl="2">Subcampeón (2°)</button><button class="btn sm" data-act="finseason" data-pl="3">Tercero (3°)</button><button class="btn sm ghost" data-act="finseason" data-pl="0">Otro puesto</button></div><button class="btn sm ghost" data-act="cancelend" style="margin-top:6px">Cancelar</button></div>`:`<button class="btn" data-act="endseason" data-id="${t.id}" style="margin-top:12px">Finalizar campeonato</button>`;return `<section><h2 class="hd">${esc(t.name)}</h2><p class="sub">En curso desde el ${fd(t.start)}.</p>${stt}<h2 class="hd" style="margin-top:14px">Insignias del campeonato</h2><div class="bgrid">${seasonMedals(t,ss)}</div>${ending}<button class="btn sm ghost" data-act="delseason" data-id="${t.id}" style="margin-top:8px">Eliminar campeonato</button></section>`}).join('');const intro=act.length?'':`<p class="sub">Un campeonato guarda aparte los partidos de un torneo, con su propia tabla de insignias y la copa del puesto final. Podés tener varios abiertos a la vez: por ejemplo, el torneo anual y una gira.</p>`;const startBox=`<section><h2 class="hd">${act.length?'Nuevo campeonato':'Campeonatos'}</h2>${intro}<button class="btn" data-act="startseason">Iniciar campeonato</button><button class="btn sm ghost" data-act="alreadystarted" style="margin-top:8px">El campeonato ya arrancó</button></section>`;head=actHtml+startBox;}
  const past=[...S.temps].filter(t=>t.end).reverse();
- const reg=past.length?`<section><h2 class="hd">Temporadas anteriores</h2>${past.map(tempCard).join('')}</section>`:'';
- return head+reg;}
+ const reg=past.length?`<section><h2 class="hd">Campeonatos anteriores</h2>${past.map(tempCard).join('')}</section>`:'';
+ return head+reg+vitrina();}
 const TMET={1:{M:'#f2c230',L:'#ffe79a',D:'#b07d12',o:'#6b4a06',k:'#8a6410',p:'#d9b24a',S:'#fff7cf'},2:{M:'#c9d1d9',L:'#f4f8fb',D:'#8a949e',o:'#5c646c',k:'#777f87',p:'#b7c0c8',S:'#ffffff'},3:{M:'#cd7f32',L:'#e8b074',D:'#944f18',o:'#5a3310',k:'#7a4414',p:'#c2863f',S:'#ffe6c2'}};
 const TROWS=[[2,10,'rim'],[2,10,'cup'],[2,10,'cup'],[3,9,'cup'],[3,9,'cup'],[4,8,'cup'],[5,7,'cup'],[5,7,'cup'],[5,7,'stem'],[5,7,'stem'],[5,7,'stem'],[4,8,'flare'],[3,9,'flare'],[2,10,'rim'],[2,10,'plaque'],[2,10,'plaque'],[1,11,'rim']];
 const DIGS={1:['010','110','010','010','111'],2:['111','001','111','100','111'],3:['111','001','011','001','111']};
@@ -665,13 +661,11 @@ function cabinet(cups){
  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:340px;display:block;margin:0 auto;image-rendering:pixelated" shape-rendering="crispEdges" role="img" aria-label="Vitrina de copas">${d}${r}</svg>`;}
 function vitrina(){
  const cups=S.temps.filter(t=>t.end&&t.place>=1&&t.place<=3).reverse();
- const legend=cups.length?`<div class="cuplist">${cups.map(t=>`<div class="cupli"><span class="cdot t${t.place}"></span>${esc(t.name)} — ${placeName(t.place)}</div>`).join('')}</div>`:`<p class="sub" style="text-align:center;margin-top:10px">Todavía no ganaste copas. Terminá una temporada en el podio y tu primera copa aparece en la vitrina.</p>`;
+ const legend=cups.length?`<div class="cuplist">${cups.map(t=>`<div class="cupli"><span class="cdot t${t.place}"></span>${esc(t.name)} — ${placeName(t.place)}</div>`).join('')}</div>`:`<p class="sub" style="text-align:center;margin-top:10px">Todavía no ganaste copas. Terminá un campeonato en el podio y tu primera copa aparece en la vitrina.</p>`;
  const cupHtml=`<div class="vcab">${cabinet(cups)}</div>${legend}`;
- const meds=BADGES.filter(b=>S.bdg[b.id]);
  const smeds=[];S.temps.forEach(t=>(t.badges||[]).forEach(id=>{const b=SEAS.find(x=>x.id===id);if(b)smeds.push({b,t})}));
- const total=meds.length+smeds.length;
- const medHtml=total?`<div class="bgrid">${meds.map(b=>`<div class="bd">${medal(b,true,4)}<b class="hd">${esc(b.name)}</b><small>${esc(b.cat)}</small></div>`).join('')}${smeds.map(o=>`<div class="bd">${medal(o.b,true,4)}<b class="hd">${esc(o.b.name)}</b><small>${esc(o.t.name)}</small></div>`).join('')}</div>`:`<p class="sub">Todavía no ganaste medallas. Ganá insignias jugando y entrenando para llenar tu vitrina.</p>`;
- return `<div class="vitrina"><section><h2 class="hd">Copas</h2><p class="sub" style="margin-bottom:8px">${cups.length} ${cups.length===1?'copa ganada':'copas ganadas'}.</p>${cupHtml}</section><section><h2 class="hd">Medallas</h2><p class="sub" style="margin-bottom:8px">${total} ${total===1?'medalla ganada':'medallas ganadas'}.</p>${medHtml}</section></div>`;}
+ const medHtml=smeds.length?`<div class="bgrid">${smeds.map(o=>`<div class="bd">${medal(o.b,true,4)}<b class="hd">${esc(o.b.name)}</b><small>${esc(o.t.name)}</small></div>`).join('')}</div>`:`<p class="sub">Todavía no ganaste medallas de campeonato. Se consiguen cumpliendo objetivos dentro de cada campeonato (tus insignias generales están en Logros).</p>`;
+ return `<div class="vitrina"><section style="margin-top:8px;border-top:2px solid var(--bd);padding-top:14px"><h2 class="hd">Vitrina de torneos</h2><p class="sub" style="margin-bottom:8px">Tus copas y las medallas que ganaste en cada campeonato.</p></section><section><h2 class="hd">Copas</h2><p class="sub" style="margin-bottom:8px">${cups.length} ${cups.length===1?'copa ganada':'copas ganadas'}.</p>${cupHtml}</section><section><h2 class="hd">Medallas de campeonato</h2>${medHtml}</section></div>`;}
 
 function perfil(){
  const c=CT,o=overall(),best=S.bronco.length?Math.min(...S.bronco.map(b=>b.t)):null;
@@ -680,15 +674,17 @@ function perfil(){
  const last=actDates().sort().pop(),idle=last?Math.round((Date.parse(today())-Date.parse(last))/864e5):0;
  const lm=[...S.m].sort((a,b)=>a.d<b.d?1:-1)[0],won=!!lm&&lm.gf>lm.ga&&(Date.parse(today())-Date.parse(lm.d))/864e5<=7;
  const pose=inj?'lie':idle>=10?'sit':won?'cheer':'stand';
- const msg=inj?'Lesionado. '+(ret?`<span data-until="${ret.until}">${remain(ret.until)}</span>`:'Sin fecha de regreso'):pose==='sit'?`Hace ${idle} días que no cargás nada. ¡Volvé a la cancha!`:pose==='cheer'?`Victoria ante ${esc(lm.rival)}`:c.streak>=2?`Racha activa: ${c.streak} semanas`:'¡Listo para jugar!';
+ const due=act.filter(i=>i.until&&i.until<=Date.now());
+ const msg=inj?(due.length?'¿Ya te recuperaste?':'Lesionado. '+(ret?`<span data-until="${ret.until}">${remain(ret.until)}</span>`:'Sin fecha de regreso')):pose==='sit'?`Hace ${idle} días que no cargás nada. ¡Volvé a la cancha!`:pose==='cheer'?`Victoria ante ${esc(lm.rival)}`:c.streak>=2?`Racha activa: ${c.streak} semanas`:'¡Listo para jugar!';
  const glow=!inj&&c.streak>=3;
  const spr=pose==='lie'?px(lying(),6):pose==='sit'?px(stand('sit'),5):pose==='cheer'?px(stand('cheer'),5):px(stand(),6);
  const spk=glow?'<i class="spk" style="left:-12px;top:22%"></i><i class="spk" style="right:-14px;top:46%;animation-delay:.4s"></i><i class="spk" style="left:24%;top:-10px;animation-delay:.8s"></i>':'';
  const nd=S.logs.some(l=>l.d===today())?'':`<div class="warn nudge"><b>Sin entrenamiento registrado hoy.</b> Registrá tu sesión para seguir tu evolución.<br><button class="btn sm" data-act="tab" data-t="habilidades">Registrar entrenamiento</button></div>`;
  const setup=(S.p.name&&S.p.club)?'':`<section id="setup"><h2 class="hd">Configurá tu perfil</h2><p class="sub">Ingresá tu nombre y tu club. Se usarán automáticamente en tus partidos.</p><label>Nombre<input data-p="name" value="${esc(S.p.name)}" maxlength="30"></label><label>Tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40"></label></section>`;
  const tip=tipDay(),eb=BADGES.filter(b=>S.bdg[b.id]);
+ const healBox=due.length?`<div class="warn nudge" style="border-color:var(--ac)"><b>Se cumplió tu período de recuperación.</b> ¿Ya estás listo para volver a la cancha?<br><button class="btn sm" data-act="healdue">Sí, ya me recuperé</button></div>`:'';
  return `${setup}<div class="scene ${inj?'hosp':'s-'+c.stg}">${inj?HOSP:bg(c.stg)}<div class="bub">${msg}</div><div class="sh"></div>
- <button class="pl${pose==='stand'?' idle':pose==='cheer'?' cheer':''}${glow?' glow':''}" data-act="locker" aria-label="Abrir el vestuario" style="background:none;border:0;padding:0">${spr}${spk}</button><button class="btn sm lkbtn" data-act="locker">Vestuario</button></div>
+ <button class="pl${pose==='stand'?' idle':pose==='cheer'?' cheer':''}${glow?' glow':''}" data-act="locker" aria-label="Abrir el vestuario" style="background:none;border:0;padding:0">${spr}${spk}</button><button class="btn sm lkbtn" data-act="locker">Vestuario</button></div>${healBox}
  ${nd}<p class="sub" style="text-align:center;margin:0 0 12px">Tocá el jugador para personalizarlo</p>
  <div class="plate hd"><div class="n">${esc(S.p.num||'0')}</div><div><h1>${esc(S.p.name||'Tu jugador')}</h1><p>${esc(S.p.pos||'Sin posición')}</p></div></div>
  <div class="lvl"><div class="lvt"><b class="hd">Nivel ${c.lvl}: ${esc(c.title)}</b><small>${c.nxt?`${c.cur} / ${c.nxt} XP`:'Nivel máximo'}</small></div><div class="bar"><i style="width:${c.nxt?c.cur/c.nxt*100:100}%"></i></div></div>
@@ -823,7 +819,7 @@ function partidos(){
  <p class="sub">Estadísticas del partido (opcional)</p><div class="g2">${nums}</div>
  <p class="sub" style="margin-top:6px">Habilidades: calificá de 1 a 10 las que aplicaron en el partido (al menos una).</p>${rows}
  <label style="margin-top:10px">Nota del partido<input id="mn" maxlength="80" placeholder="Opcional" value="${esc(dM.n||'')}"></label>
- <p class="xph">Suma +25 XP por jugar, +15 por cada try y +10 si ganan.</p><button class="btn" data-act="addm">Guardar partido</button></section>
+ ${(function(){const a=S.temps.filter(t=>!t.end);return a.length>1?`<p class="sub" style="margin-top:10px">¿A qué campeonatos pertenece este partido?</p>${a.map(t=>`<label class="pick"><input type="checkbox" data-mt value="${t.id}" checked><span>${esc(t.name)}</span></label>`).join('')}`:''})()}<p class="xph">Suma +25 XP por jugar, +15 por cada try y +10 si ganan.</p><button class="btn" data-act="addm">Guardar partido</button></section>
  <section><h2 class="hd">Tus partidos</h2>${list||'<p class="mut">No hay partidos registrados.</p>'}</section>`;
 }
 
@@ -835,8 +831,8 @@ document.addEventListener('input',captureDraft);
 function render(){
  calc();
  if(view==='locker'){$('#app').innerHTML=locker();updBanner();return}
- const v={perfil,habilidades,partidos,bronco,lesiones,avisos,logros}[tab]();
- $('#app').innerHTML=`<div class="navw"><button class="nfade l" data-act="navl" aria-label="Ver pestañas anteriores" tabindex="-1">‹</button><nav>${[['perfil','jugador','Jugador'],['habilidades','skills','Skills'],['partidos','partidos','Partidos'],['bronco','bronco','Bronco'],['lesiones','lesiones','Lesiones'],['logros','insignias','Logros'],['avisos','avisos','Avisos']].map(([k,e,l])=>`<button data-act="tab" data-t="${k}" class="${k===tab?'on':''}">${icon(e)}${l}</button>`).join('')}</nav><button class="nfade r" data-act="navr" aria-label="Ver más pestañas" tabindex="-1">›</button></div><main>${v}</main>`;
+ const v={perfil,habilidades,partidos,bronco,lesiones,avisos,logros,campeonatos}[tab]();
+ $('#app').innerHTML=`<div class="navw"><button class="nfade l" data-act="navl" aria-label="Ver pestañas anteriores" tabindex="-1">‹</button><nav>${[['perfil','jugador','Jugador'],['habilidades','skills','Skills'],['partidos','partidos','Partidos'],['bronco','bronco','Bronco'],['lesiones','lesiones','Lesiones'],['logros','insignias','Logros'],['campeonatos','trofeo','Campeonatos'],['avisos','avisos','Avisos']].map(([k,e,l])=>`<button data-act="tab" data-t="${k}" class="${k===tab?'on':''}">${icon(e)}${l}</button>`).join('')}</nav><button class="nfade r" data-act="navr" aria-label="Ver más pestañas" tabindex="-1">›</button></div><main>${v}</main>`;
  const on=$('nav button.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'});
  const nv=$('.navw nav'),nw=$('.navw');if(nv){const upd=()=>{nw.classList.toggle('more-r',nv.scrollLeft+nv.clientWidth<nv.scrollWidth-4);nw.classList.toggle('more-l',nv.scrollLeft>4)};nv.addEventListener('scroll',upd,{passive:true});upd()}
  updBanner();
@@ -899,14 +895,14 @@ document.addEventListener('click',e=>{
   S.inj.push({id:uid(),d,z:$('#jz').value,g:$('#jg').value,n:$('#jn').value.trim(),ok:false,until:n>0?new Date(d+'T00:00:00').getTime()+n*k*864e5:null})}
  else if(a==='addrem'){const t=$('#rt').value.trim().slice(0,40),h=$('#rh').value,k=$('#rd').value;if(!t||!h)return;S.rem.push({id:uid(),t,h,d:k==='Lunes a viernes'?[1,2,3,4,5]:k==='Fines de semana'?[0,6]:[0,1,2,3,4,5,6],last:'',done:''})}
  else if(a==='restweek'){const cw=wkOf(today());S.rest=S.rest.includes(cw)?S.rest.filter(w=>w!==cw):S.rest.concat(cw)}
- else if(a==='startseason'){if(activeTemp()){toast('Ya ten\u00e9s una temporada en curso. Finalizala antes de empezar otra.');return}const nm=(prompt('Nombre de la temporada','Temporada '+new Date().getFullYear())||'').trim().slice(0,30);if(!nm)return;S.temps.push({id:uid(),name:nm,start:today(),end:null,place:0,badges:[],mids:[]});S.tempPick=false}
- else if(a==='endseason'){const t=activeTemp();S.tempEnding=t?t.id:0}
+ else if(a==='startseason'){const nm=(prompt('Nombre del campeonato','Campeonato '+new Date().getFullYear())||'').trim().slice(0,30);if(!nm)return;S.temps.push({id:uid(),name:nm,start:today(),end:null,place:0,badges:[],mids:[]});S.tempPick=false}
+ else if(a==='endseason'){S.tempEnding=b.dataset.id||0}
  else if(a==='cancelend'){S.tempEnding=0}
- else if(a==='finseason'){const t=activeTemp();if(t){t.end=today();t.place=+b.dataset.pl||0;S.tempEnding=0;const pod=t.place>=1&&t.place<=3;pop.push({svg:pod?cup(t.place,6):icon('trofeo',96),k:'Temporada finalizada',title:t.name,sub:pod?placeName(t.place):'Qued\u00f3 guardada en tu historial.'})}}
- else if(a==='delseason'){if(confirm('¿Eliminar esta temporada? Los partidos no se borran: solo dejan de pertenecer a una temporada.')){S.temps=S.temps.filter(t=>t.id!==b.dataset.id);S.tempEnding=0}}
- else if(a==='alreadystarted'){const asg=new Set();S.temps.forEach(t=>(t.mids||[]).forEach(id=>asg.add(id)));if(!S.m.some(m=>!asg.has(m.id))){toast('No tenés partidos que no correspondan a ninguna temporada.',4500);return}S.tempPick=true}
+ else if(a==='finseason'){const t=S.temps.find(x=>x.id===S.tempEnding);if(t){t.end=today();t.place=+b.dataset.pl||0;S.tempEnding=0;const pod=t.place>=1&&t.place<=3;pop.push({svg:pod?cup(t.place,6):icon('trofeo',96),k:'Campeonato finalizado',title:t.name,sub:pod?placeName(t.place):'Qued\u00f3 guardado en tu historial.'})}}
+ else if(a==='delseason'){if(confirm('¿Eliminar este campeonato? Los partidos no se borran: solo dejan de pertenecer a un campeonato.')){S.temps=S.temps.filter(t=>t.id!==b.dataset.id);S.tempEnding=0}}
+ else if(a==='alreadystarted'){const asg=new Set();S.temps.forEach(t=>(t.mids||[]).forEach(id=>asg.add(id)));if(!S.m.some(m=>!asg.has(m.id))){toast('No tenés partidos que no correspondan a ningún campeonato.',4500);return}S.tempPick=true}
  else if(a==='cancelpast'){S.tempPick=false}
- else if(a==='createpast'){const nm=($('#tpname')?$('#tpname').value:'').trim().slice(0,30);if(!nm){toast('Poné un nombre para la temporada.');return}const ids=[...document.querySelectorAll('[data-pick]:checked')].map(e=>e.value);let st=today();if(ids.length){st=S.m.filter(m=>ids.includes(m.id)).map(m=>m.d).sort()[0]}S.temps.push({id:uid(),name:nm,start:st,end:null,place:0,badges:[],mids:ids});S.tempPick=false;pop.push({svg:icon('trofeo',96),k:'Temporada creada',title:nm,sub:ids.length?`${ids.length} ${ids.length===1?'partido agregado':'partidos agregados'} a la temporada.`:'Ya podés registrar partidos en esta temporada.'})}
+ else if(a==='createpast'){const nm=($('#tpname')?$('#tpname').value:'').trim().slice(0,30);if(!nm){toast('Poné un nombre para el campeonato.');return}const ids=[...document.querySelectorAll('[data-pick]:checked')].map(e=>e.value);let st=today();if(ids.length){st=S.m.filter(m=>ids.includes(m.id)).map(m=>m.d).sort()[0]}S.temps.push({id:uid(),name:nm,start:st,end:null,place:0,badges:[],mids:ids});S.tempPick=false;pop.push({svg:icon('trofeo',96),k:'Campeonato creado',title:nm,sub:ids.length?`${ids.length} ${ids.length===1?'partido agregado':'partidos agregados'} al campeonato.`:'Ya podés registrar partidos en este campeonato.'})}
  else if(a==='autonotif'){S.autoNotif=S.autoNotif===false}
  else if(a==='rdone'){const r=S.rem.find(x=>x.id===b.dataset.id);if(r)r.done=r.done===ld()?'':ld()}
  else if(a==='addm'){const rv=$('#mr').value.trim();if(!rv){toast('Ingresá el nombre del rival.');return}
@@ -916,8 +912,9 @@ document.addEventListener('click',e=>{
   ST.forEach(([k])=>{st[k]=+$('#m_'+k).value||0});
   document.querySelectorAll('[data-ms]').forEach(el=>{if(el.value){const n=S.skills[+el.dataset.ms];sk[n]=+el.value;S.logs.push({id:uid(),d,s:n,v:+el.value,n:'Partido vs '+rv})}});
   S.p.club=club;
-  const _mid=uid();S.m.push({id:_mid,d,club,rival:rv,gf:+$('#mg').value||0,ga:+$('#ma').value||0,ov:+$('#mo').value||0,min:Math.max(0,Math.min(240,Math.round(+$('#mmin').value||0))),tit:$('#mtit').value,st,sk,n:$('#mn').value.trim()});const _as=activeTemp();if(_as){_as.mids=_as.mids||[];_as.mids.push(_mid)}S.draftM=null;}
+  const _mid=uid();S.m.push({id:_mid,d,club,rival:rv,gf:+$('#mg').value||0,ga:+$('#ma').value||0,ov:+$('#mo').value||0,min:Math.max(0,Math.min(240,Math.round(+$('#mmin').value||0))),tit:$('#mtit').value,st,sk,n:$('#mn').value.trim()});const _act=S.temps.filter(t=>!t.end);if(_act.length===1){_act[0].mids=_act[0].mids||[];_act[0].mids.push(_mid)}else if(_act.length>1){const _ch=[...document.querySelectorAll('[data-mt]:checked')].map(e=>e.value);_act.forEach(t=>{if(_ch.includes(t.id)){t.mids=t.mids||[];t.mids.push(_mid)}})}S.draftM=null;}
  else if(a==='toggle'){const i=S.inj.find(x=>x.id===b.dataset.id);if(i)i.ok=!i.ok}
+ else if(a==='healdue'){let h=0;S.inj.forEach(i=>{if(!i.ok&&i.until&&i.until<=Date.now()){i.ok=true;h++}});if(h)pop.push({svg:icon('skills',96),k:'¡Recuperado!',title:'De vuelta en la cancha',sub:'Tu jugador ya puede entrenar y jugar.'})}
  else if(a==='del'){const k=b.dataset.k;S[k]=S[k].filter(x=>x.id!==b.dataset.id)}
  const xp0=CT?CT.xp:0;syncAll();newRecs(r0,recs());save();render();showPop();
  if(['addsession','addm','addbronco'].includes(a)){const g=calc().xp-xp0;if(g>0)toast(`+${g} XP`,3500);else if(a==='addsession')toast('Entrenamiento guardado. Ya sumaste los XP de hoy.',3500)}
@@ -934,7 +931,7 @@ document.addEventListener('change',e=>{
  render();
 });
 document.addEventListener('input',e=>{if(e.target.id==='sv')$('#svv').textContent=e.target.value});
-setInterval(()=>document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'}),30000);
+setInterval(()=>{document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'});if(tab==='perfil'&&view==='main'&&S.inj.some(i=>!i.ok&&i.until&&i.until<=Date.now())&&!$('[data-act="healdue"]'))render();},30000);
 $('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(()=>{if(AD.ok)refreshAdBtns()},30000);setInterval(check,20000);check();applyColor();render();
 if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
 if(!NAT&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
