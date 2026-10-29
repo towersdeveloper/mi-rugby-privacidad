@@ -522,7 +522,7 @@ function syncAll(){buildB();const d=bdata();
  const c=calc(),pl=S.lvl||1;
  if(c.lvl>pl){pop.push({svg:icon('skills',96),k:'Nuevo nivel',title:'Nivel '+c.lvl+': '+c.title,sub:unlockMsg(pl,c.lvl)});track('subir_nivel',{nivel:c.lvl})}
  S.lvl=c.lvl;
- if(NAT&&c.lvl>=2&&!S.widgetTip){S.widgetTip=1;pop.push({svg:icon('skills',96),k:'Widget disponible',title:'Agregá el widget',sub:'Mantené apretada tu pantalla de inicio, entrá a Widgets y buscá Mi Rugby para tenerlo siempre a mano.'})}
+ if(NAT&&c.lvl>=3&&!S.widgetTip){S.widgetTip=1;pop.push({svg:icon('skills',96),k:'Widget disponible',title:'Agregá el widget',sub:'Mantené apretada tu pantalla de inicio, entrá a Widgets y buscá Mi Rugby para tenerlo siempre a mano.'})}
  if(c.chd&&S.chn!==c.cw){S.chn=c.cw;pop.push({svg:icon('reto',96),k:'Desafío completado',title:c.ch.t,sub:'+40 XP. El próximo desafío comienza el lunes.'})}
 }
 syncAll();pop=[];save();
@@ -893,7 +893,7 @@ async function ownerOk(){const c=(prompt('Código')||'').trim().toUpperCase();if
  if(h!=='993d37a1d3c94e773145ed0e3b77fdaeb4f06cafbdef6707a27561e2d3b0e44f'){toast('Código incorrecto.',3000);return false}return true}
 async function ownerTap(){if(!NAT)return;ownTap=(Date.now()-ownT<1500?ownTap:0)+1;ownT=Date.now();if(ownTap<7)return;ownTap=0;
   if(!S.noAds&&!(await ownerOk()))return;
-  S.noAds=!S.noAds;save();const am=PL('AdMob');
+  S.noAds=!S.noAds;save();const am=PL('AdMob');{const fa=PL('FirebaseAnalytics');if(fa)try{fa.setCollectionEnabled({enabled:!S.noAds})}catch(e){}}
   if(S.noAds){if(am&&AD.ok){am.hideBanner().catch(()=>{});}AD.ok=false;AD.bannerOn=false;AD.pendingInter=false;padBanner();refreshAdBtns();toast('Modo dueño activado: en este celular no se muestran anuncios.',5000)}
   else{toast('Modo dueño desactivado: los anuncios vuelven a aparecer.',5000);adsInit()}
   render();}
@@ -979,7 +979,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{if(e.target.id==='sv')$('#svv').textContent=e.target.value});
 setInterval(()=>{document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'});if(tab==='perfil'&&view==='main'&&S.inj.some(i=>!i.ok&&i.until&&i.until<=Date.now())&&!$('[data-act="healdue"]'))render();},30000);
 $('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(()=>{if(AD.ok)refreshAdBtns()},30000);setInterval(check,20000);check();applyColor();render();
-if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);{const fa=PL('FirebaseAnalytics');if(fa)try{fa.setCollectionEnabled({enabled:true})}catch(e){}}const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
+if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);{const fa=PL('FirebaseAnalytics');if(fa)try{fa.setCollectionEnabled({enabled:!S.noAds})}catch(e){}}const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
 if(!NAT&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
