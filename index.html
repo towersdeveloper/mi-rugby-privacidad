@@ -216,6 +216,9 @@ const PL=n=>NAT&&window.Capacitor&&Capacitor.Plugins?Capacitor.Plugins[n]:null;
 let _scr='';
 function track(n,pr){const fa=PL('FirebaseAnalytics');if(fa)try{fa.logEvent({name:n,params:pr||{}})}catch(e){}}
 function trackScreen(n){const fa=PL('FirebaseAnalytics');if(fa&&n!==_scr){_scr=n;try{fa.setScreenName({screenName:n,nameOverride:n})}catch(e){}}}
+let _wst='';
+function widgetState(){const act=S.inj.filter(i=>!i.ok);if(act.length)return 'injured';const si=streakInfo();const left=7-((new Date().getDay()+6)%7);if(si.cur>0&&!si.thisWeek&&!si.rest&&left<=2)return 'streak';const last=actDates().sort().pop();const idle=last?Math.round((Date.parse(today())-Date.parse(last))/864e5):0;if(idle>=10)return 'idle';const lm=[...S.m].sort((a,b)=>a.d<b.d?1:-1)[0];const won=!!lm&&lm.gf>lm.ga&&(Date.parse(today())-Date.parse(lm.d))/864e5<=7;return won?'cheer':'normal'}
+function saveWidget(){const pf=PL('Preferences');if(!pf)return;const st=widgetState();if(st===_wst)return;_wst=st;try{pf.set({key:'widgetState',value:st})}catch(e){}}
 const NOTIF_H=18;
 function atDay(d,h){const t=new Date(d+'T00:00:00');t.setHours(h,0,0,0);return t}
 function smartList(){if(S.autoNotif===false)return[];const out=[],now=Date.now(),si=streakInfo(),cw=wkOf(today());
@@ -512,12 +515,14 @@ const GTIPS=['Realizá una entrada en calor completa antes de entrenar para redu
 function tipDay(){const day=Math.floor(Date.parse(today())/864e5),s=stats().filter(x=>x.a!==null&&TIPS[x.n]).sort((a,b)=>a.a-b.a)[0];
  if(s&&day%3!==2){const t=TIPS[s.n];return{h:'Para mejorar en '+s.n,t:t[day%t.length]}}return{h:'Consejo del día',t:GTIPS[day%GTIPS.length]}}
 function syncAll(){buildB();const d=bdata();
+ (function(){if(!Array.isArray(S.rest))S.rest=[];const cw=wkOf(today()),ad=actDates();if(!ad.length)return;const first=wkOf([...ad].sort()[0]);for(let w=first;w<cw;w=addDays(w,7)){if(S.rest.includes(w))continue;const we=addDays(w,6);if(ad.some(x=>x>=w&&x<=we))continue;const inSeason=S.temps.some(t=>t.start<=we&&(!t.end||t.end>=w));if(!inSeason)S.rest=S.rest.concat(w)}})();
  Object.keys(S.bdg).forEach(k=>{if(!BADGES.some(b=>b.id===k))delete S.bdg[k]});
  BADGES.forEach(b=>{const g=b.got(d);if(g&&!S.bdg[b.id]){S.bdg[b.id]=today();pop.push({svg:medal(b,true,8),k:'¡Nueva insignia!',title:b.name,sub:b.desc})}else if(!g&&S.bdg[b.id])delete S.bdg[b.id]});
  S.temps.filter(t=>!t.end).forEach(_at=>{_at.badges=_at.badges||[];const _ss=tempStats(_at);SEAS.forEach(b=>{const r=b.f(_ss);if(r[0]>=r[1]&&!_at.badges.includes(b.id)){_at.badges.push(b.id);pop.push({svg:medal(b,true,8),k:'Insignia de campeonato',title:b.name+' \u00b7 '+_at.name,sub:b.desc})}})});
  const c=calc(),pl=S.lvl||1;
  if(c.lvl>pl){pop.push({svg:icon('skills',96),k:'Nuevo nivel',title:'Nivel '+c.lvl+': '+c.title,sub:unlockMsg(pl,c.lvl)});track('subir_nivel',{nivel:c.lvl})}
  S.lvl=c.lvl;
+ if(NAT&&c.lvl>=2&&!S.widgetTip){S.widgetTip=1;pop.push({svg:icon('skills',96),k:'Widget disponible',title:'Agregá el widget',sub:'Mantené apretada tu pantalla de inicio, entrá a Widgets y buscá Mi Rugby para tenerlo siempre a mano.'})}
  if(c.chd&&S.chn!==c.cw){S.chn=c.cw;pop.push({svg:icon('reto',96),k:'Desafío completado',title:c.ch.t,sub:'+40 XP. El próximo desafío comienza el lunes.'})}
 }
 syncAll();pop=[];save();
@@ -868,7 +873,7 @@ function render(){
  const v={perfil,habilidades,partidos,bronco,lesiones,avisos,logros,campeonatos}[tab]();
  $('#app').innerHTML=`<div class="navw"><button class="nfade l" data-act="navl" aria-label="Ver pestañas anteriores" tabindex="-1">‹</button><nav>${[['perfil','jugador','Jugador'],['habilidades','skills','Skills'],['partidos','partidos','Partidos'],['bronco','bronco','Bronco'],['lesiones','lesiones','Lesiones'],['logros','insignias','Logros'],['campeonatos','trofeo','Campeonatos'],['avisos','avisos','Avisos']].map(([k,e,l])=>`<button data-act="tab" data-t="${k}" class="${k===tab?'on':''}">${icon(e)}${l}</button>`).join('')}</nav><button class="nfade r" data-act="navr" aria-label="Ver más pestañas" tabindex="-1">›</button></div><main>${v}</main>`;
  const on=$('nav button.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'});
- trackScreen(view==='locker'?'vestuario':tab);
+ trackScreen(view==='locker'?'vestuario':tab);saveWidget();
  const nv=$('.navw nav'),nw=$('.navw');if(nv){const upd=()=>{nw.classList.toggle('more-r',nv.scrollLeft+nv.clientWidth<nv.scrollWidth-4);nw.classList.toggle('more-l',nv.scrollLeft>4)};nv.addEventListener('scroll',upd,{passive:true});upd()}
  updBanner();
 }
