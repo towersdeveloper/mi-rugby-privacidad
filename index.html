@@ -99,7 +99,7 @@ input[type=range]{padding:0;accent-color:var(--ac)}
 .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
 .bd{background:var(--bg);border-radius:14px;padding:12px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 .tcard{display:flex;gap:12px;align-items:center;background:var(--bg);border-radius:14px;padding:12px;margin-bottom:10px}
-.kfield{position:relative;height:150px;background:linear-gradient(#7fcdf5,#cdeeff 55%,#8ed08a 55%,#6fbf6f);border-radius:14px;overflow:hidden;margin:8px 0}.kpost{position:absolute;top:14px;width:4px;height:60px;background:#f2f2f2;transform:translateX(-2px)}.kcross{position:absolute;top:14px;left:40%;width:20%;height:4px;background:#f2f2f2}.kball{position:absolute;bottom:8%;left:48%;width:16px;height:16px;border-radius:50%;background:#8a4b1f;border:2px solid #fff;box-shadow:inset -2px -2px 0 rgba(0,0,0,.2)}.ktrack{position:relative;height:16px;border-radius:8px;background:var(--bg);overflow:hidden}.kzone{position:absolute;left:43%;width:14%;height:100%;background:var(--ac);opacity:.35}.kmark{position:absolute;top:-2px;left:0;width:4px;height:20px;background:var(--ac2);transform:translateX(-2px)}.tcup{flex:none}.tinfo{min-width:0}
+.kfield{position:relative;height:150px;background:linear-gradient(#7fcdf5,#cdeeff 55%,#8ed08a 55%,#6fbf6f);border-radius:14px;overflow:hidden;margin:8px 0}.kpost{position:absolute;top:10px;width:5px;height:104px;background:#f2f2f2;transform:translateX(-2px);box-shadow:1px 0 0 rgba(0,0,0,.12)}.kcross{position:absolute;top:46px;left:40%;width:20%;height:5px;background:#f2f2f2}.kball{position:absolute;bottom:8%;left:48%;width:16px;height:16px;border-radius:50%;background:#8a4b1f;border:2px solid #fff;box-shadow:inset -2px -2px 0 rgba(0,0,0,.2)}.ktrack{position:relative;height:16px;border-radius:8px;background:var(--bg);overflow:hidden}.kzone{position:absolute;left:43%;width:14%;height:100%;background:var(--ac);opacity:.35}.kmark{position:absolute;top:-2px;left:0;width:4px;height:20px;background:var(--ac2);transform:translateX(-2px)}.tcup{flex:none}.tinfo{min-width:0}
 .pchoice{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .picklist{max-height:260px;overflow:auto;margin:8px 0;border:1px solid var(--bd);border-radius:12px;padding:4px 8px}
 .pick{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--bd)}.pick:last-child{border-bottom:0}.pick input{width:20px;height:20px;flex:none}.pick span{font-size:14px}
@@ -239,7 +239,7 @@ async function syncNotifs(ask){const ln=PL('LocalNotifications');if(!ln)return;t
  const pend=await ln.getPending();if(pend.notifications&&pend.notifications.length)await ln.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
  const list=[];let id=1;S.rem.forEach(r=>{const [h,m]=r.h.split(':').map(Number);r.d.forEach(d=>list.push({id:id++,title:'Mi Rugby',body:r.t,schedule:{on:{weekday:d+1,hour:h,minute:m},allowWhileIdle:true},channelId:'recordatorios',isExactNotification:false}))});
  list.push(...smartList());
- if(S.daily&&S.daily.on){const dm=['¿Entrenaste hoy? Registralo para seguir tu evolución.','No cortes tu racha: cargá tu entrenamiento o partido de hoy.','Un minuto para registrar tu día en Mi Rugby. ¡Dale!','Sumá tu progreso de hoy y ganá XP.','¿Jugaste o entrenaste? Dejá registro en Mi Rugby.'],bd=dm[Math.floor(Date.now()/864e5)%dm.length],hm=S.daily.h.split(':').map(Number);list.push({id:9100,title:'Mi Rugby',body:bd,schedule:{on:{hour:hm[0],minute:hm[1]},allowWhileIdle:true},channelId:'recordatorios',isExactNotification:false})}
+ if(S.daily&&S.daily.on){const dm=['¿Entrenaste hoy? Registralo para seguir tu evolución.','No cortes tu racha: cargá tu entrenamiento o partido de hoy.','Un minuto para registrar tu día en Mi Rugby.','Sumá tu progreso de hoy y ganá XP.','¿Jugaste o entrenaste? Dejá registro en Mi Rugby.'],bd=dm[Math.floor(Date.now()/864e5)%dm.length],hm=S.daily.h.split(':').map(Number);list.push({id:9100,title:'Mi Rugby',body:bd,schedule:{on:{hour:hm[0],minute:hm[1]},allowWhileIdle:true},channelId:'recordatorios',isExactNotification:false})}
  if(list.length)await ln.schedule({notifications:list})}catch(e){}}
 async function saveNative(cv,name){const fs=PL('Filesystem');if(!fs){toast('No se pudo guardar la imagen.');return}
  try{const n=name.replace(/\.png$/,'')+'-'+Date.now().toString(36)+'.png';
@@ -343,6 +343,7 @@ IC.trofeo=["..kkkkkkkk..","kkkYyyyyOkkk","kykYyyyyOkyk","kykYyyyyOkyk",".kkYyyyy
 IC.reto=["...kkkkkk...",".kkRRRRRRkk.",".kRRWWWWRRk.","kRRWWWWWWRRk","kRWWRRRRWWRk","kRWWRkkRWWRk","kRWWRkkRWWRk","kRWWRRRRWWRk","kRRWWWWWWRRk",".kRRWWWWRRk.",".kkRRRRRRkk.","...kkkkkk..."];
 IC.lock=["............","....kkkk....","...k....k...","...k....k...","..kkkkkkkk..","..kyyyyyyk..","..kyyOOyyk..","..kyyOOyyk..","..kyyyyyyk..","..kkkkkkkk..","............","............"];
 IC.insignias=[".kkkk..kkkk.",".kRRRkkBBBk.","..kRRkkBBk..","...kkkkkk...","..kYYyyyyk..",".kYyyyyyyOk.",".kYyyyyyyOk.",".kyyyyyyyOk.",".kyyyyyyyOk.",".kyyyyyyyOk.","..kyyyyyOk..","...kkkkkk..."];
+IC.palos=["...W....W...","...W....W...","...W....W...","...W....W...","...WWWWWW...","...W....W...","...W....W...","...W....W...","...W....W...","..GGGGGGGG..","..gggggggg..","............"];
 const ICP={B:'#1e55c8',k:'#1a1f2b',o:'#8a4b1f',O:'#b8692e',L:'#f3e9d2',y:'#f2c230',Y:'#ffe98a',W:'#ffffff',R:'#d64545',G:'#4db35e',g:'#3f9d4f'};
 function icon(n,z){z=z||26;const a=IC[n];let r='';a.forEach((row,y)=>[...row].forEach((c,x)=>{if(ICP[c])r+=`<rect x="${x}" y="${y}" width="1" height="1" fill="${ICP[c]}"/>`}));return `<svg viewBox="0 0 12 12" width="${z}" height="${z}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`}
 const TEAMC=['#1f8a4c','#1e55c8','#4fb3e8','#d12b2b','#8a1c3a','#f08a1c','#f2c230','#7b3fc4','#e04fa0','#1c1c1c','#8a97a6','#ffffff'];
@@ -527,7 +528,7 @@ function syncAll(){buildB();const d=bdata();
 }
 syncAll();pop=[];save();
 function showPop(){if(!pop.length||$('.modal'))return;const b=pop[0],m=document.createElement('div');m.className='modal';m.id='popm';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
- m.innerHTML=`<div class="mcard"><div class="k hd">${b.k}</div>${b.svg}<h2 class="hd">${esc(b.title)}</h2><p>${esc(b.sub)}</p><button class="btn" data-act="popok">¡Vamos!</button></div>`;document.body.appendChild(m);m.querySelector('button').focus()}
+ m.innerHTML=`<div class="mcard"><div class="k hd">${b.k}</div>${b.svg}<h2 class="hd">${esc(b.title)}</h2><p>${esc(b.sub)}</p><button class="btn" data-act="popok">Continuar</button></div>`;document.body.appendChild(m);m.querySelector('button').focus()}
 
 /* ---------- imágenes para compartir ---------- */
 let shareBlob=null,shareName='',shareCv=null;
@@ -691,14 +692,14 @@ function perfil(){
  const lm=[...S.m].sort((a,b)=>a.d<b.d?1:-1)[0],won=!!lm&&lm.gf>lm.ga&&(Date.parse(today())-Date.parse(lm.d))/864e5<=7;
  const pose=inj?'lie':idle>=10?'sit':won?'cheer':'stand';
  const due=act.filter(i=>i.until&&i.until<=Date.now());
- const msg=inj?(due.length?'¿Ya te recuperaste?':'Lesionado. '+(ret?`<span data-until="${ret.until}">${remain(ret.until)}</span>`:'Sin fecha de regreso')):pose==='sit'?`Hace ${idle} días que no cargás nada. ¡Volvé a la cancha!`:pose==='cheer'?`Victoria ante ${esc(lm.rival)}`:c.streak>=2?`Racha activa: ${c.streak} semanas`:'¡Listo para jugar!';
+ const msg=inj?(due.length?'¿Ya te recuperaste?<br><button class="btn sm" data-act="healdue" style="margin-top:7px;padding:5px 18px">Sí</button>':'Lesionado. '+(ret?`<span data-until="${ret.until}">${remain(ret.until)}</span>`:'Sin fecha de regreso')):pose==='sit'?`Hace ${idle} días sin actividad. Registrá tu próxima sesión.`:pose==='cheer'?`Victoria ante ${esc(lm.rival)}`:c.streak>=2?`Racha activa: ${c.streak} semanas`:'Listo para jugar.';
  const glow=!inj&&c.streak>=3;
  const spr=pose==='lie'?px(lying(),6):pose==='sit'?px(stand('sit'),5):pose==='cheer'?px(stand('cheer'),5):px(stand(),6);
  const spk=glow?'<i class="spk" style="left:-12px;top:22%"></i><i class="spk" style="right:-14px;top:46%;animation-delay:.4s"></i><i class="spk" style="left:24%;top:-10px;animation-delay:.8s"></i>':'';
  const nd=S.logs.some(l=>l.d===today())?'':`<div class="warn nudge"><b>Sin entrenamiento registrado hoy.</b> Registrá tu sesión para seguir tu evolución.<br><button class="btn sm" data-act="tab" data-t="habilidades">Registrar entrenamiento</button></div>`;
  const setup=(S.p.name&&S.p.club)?'':`<section id="setup"><h2 class="hd">Configurá tu perfil</h2><p class="sub">Ingresá tu nombre y tu club. Se usarán automáticamente en tus partidos.</p><label>Nombre<input data-p="name" value="${esc(S.p.name)}" maxlength="30"></label><label>Tu club<input data-p="club" value="${esc(S.p.club||'')}" maxlength="40"></label></section>`;
  const tip=tipDay(),eb=BADGES.filter(b=>S.bdg[b.id]);
- const healBox=due.length?`<div class="warn nudge" style="border-color:var(--ac)"><b>Se cumplió tu período de recuperación.</b> ¿Ya estás listo para volver a la cancha?<br><button class="btn sm" data-act="healdue">Sí, ya me recuperé</button></div>`:'';
+ const healBox='';
  return `${setup}<div class="scene ${inj?'hosp':'s-'+c.stg}">${inj?HOSP:bg(c.stg)}<div class="bub">${msg}</div><div class="sh"></div>
  <button class="pl${pose==='stand'?' idle':pose==='cheer'?' cheer':''}${glow?' glow':''}" data-act="locker" aria-label="Abrir el vestuario" style="background:none;border:0;padding:0">${spr}${spk}</button><button class="btn sm lkbtn" data-act="locker">Vestuario</button></div>${healBox}
  ${nd}<p class="sub" style="text-align:center;margin:0 0 12px">Tocá el jugador para personalizarlo</p>
@@ -707,7 +708,7 @@ function perfil(){
  <div class="adslot">${adBtn()}</div>
  <div class="duo"><button class="mini-card" data-act="tab" data-t="logros" data-sub="prog">${icon('fuego',30)}<div><b class="hd">${c.streak} ${c.streak===1?'semana':'semanas'}</b><small>${c.thisWeek?'Racha activa':c.rest?'Semana de descanso':'Sin actividad esta semana'}</small></div></button><button class="mini-card" data-act="tab" data-t="logros" data-sub="prog">${icon('reto',30)}<div><b class="hd">${c.chd?'Completado':'Desafío'}</b><small>${esc(c.ch.t)}</small></div></button></div>
  ${restBox(c)}
- <button class="btn" data-act="kick" style="margin-bottom:10px">Patear a los palos ${kickToday()>=KICK_MAX?'(listo por hoy)':'('+(KICK_MAX-kickToday())+' hoy)'}</button><button class="btn" style="margin-bottom:16px" data-act="card">Compartir carta de jugador</button>
+ <button class="btn" style="margin-bottom:16px" data-act="card">Compartir carta de jugador</button>
  <div class="stats hd"><div class="stat"><b>${o===null?'-':o.toFixed(1)}</b><span>Promedio general</span></div><div class="stat"><b>${best?fmt(best):'-'}</b><span>Mejor bronco</span></div><div class="stat"><b>${act.length}</b><span>Lesiones activas</span></div></div>
  <div class="tip"><b>${esc(tip.h)}</b><p>${esc(tip.t)}</p></div>
  <section><h2 class="hd">Insignias</h2>${eb.length?`<div class="strip">${eb.map(b=>medal(b,true,3)).join('')}</div>`:'<p class="sub" style="margin-bottom:10px">Aún no obtuviste insignias. Registrá partidos y tests de bronco para empezar.</p>'}<button class="btn" data-act="tab" data-t="logros" data-sub="ins">Ver insignias (${eb.length} de ${BADGES.length})</button></section>
@@ -847,31 +848,36 @@ function captureDraft(){captureT();captureM();}
 document.addEventListener('input',captureDraft);
 let kickT=null,kickX=0,kickDir=1;
 function kickToday(){return (S.kick&&S.kick.d===today())?S.kick.n:0}
-function openKick(){if($('#kickm'))return;if(kickToday()>=KICK_MAX){toast('Ya usaste tus 2 patadas de hoy. Mañana hay más.',3500);return}
- const left=KICK_MAX-kickToday();
- const m=document.createElement('div');m.className='modal';m.id='kickm';m.setAttribute('role','dialog');
- m.innerHTML=`<div class="mcard"><h2 class="hd">Apuntá a los palos</h2><p class="sub">Tocá "¡Patear!" cuando la flecha esté entre los palos.</p>
+function juego(){
+ const left=KICK_MAX-kickToday(),done=left<=0;
+ return `<div class="card">
+  <h2 class="hd">Patada a los palos</h2>
+  <p class="sub">Tocá "Patear" cuando el marcador esté entre los palos. Cada acierto suma ${KICK_XP} XP.</p>
   <div class="kfield"><div class="kpost" style="left:40%"></div><div class="kpost" style="left:60%"></div><div class="kcross"></div><div class="kball" id="kball"></div></div>
   <div class="ktrack"><div class="kzone"></div><div class="kmark" id="kmark"></div></div>
-  <div id="kmsg" class="hd" style="min-height:22px;margin:10px 0"></div>
-  <button class="btn" id="kgo" data-act="dokick">¡Patear!</button>
-  <button class="btn ghost" data-act="closekick" style="margin-top:8px">Cerrar</button>
-  <p class="sub" style="margin-top:8px">Te ${left===1?'queda':'quedan'} ${left} de hoy.</p></div>`;
- document.body.appendChild(m);kickX=0;kickDir=1;
+  <div id="kmsg" class="hd" style="min-height:24px;margin:12px 0;text-align:center">${done?'Completaste tus patadas de hoy. Volvé mañana.':''}</div>
+  <button class="btn" id="kgo" data-act="dokick"${done?' disabled':''}>Patear</button>
+  <p class="sub" style="margin-top:10px;text-align:center">${done?'Sin patadas disponibles hoy.':'Te '+(left===1?'queda':'quedan')+' '+left+' de hoy.'}</p>
+  <div class="stats hd" style="margin-top:14px"><div class="stat"><b>${S.kickGoals||0}</b><span>Aciertos totales</span></div><div class="stat"><b>${(S.kickGoals||0)*KICK_XP}</b><span>XP acumulado</span></div></div>
+ </div>`}
+function startKickAnim(){if(kickT){clearInterval(kickT);kickT=null}if(kickToday()>=KICK_MAX)return;kickX=0;kickDir=1;const go=$('#kgo');if(go)go.disabled=false;const ball=$('#kball');if(ball){ball.style.transition='none';ball.style.bottom='8%';ball.style.left='48%'}
  kickT=setInterval(()=>{kickX+=kickDir*2.5;if(kickX>=100){kickX=100;kickDir=-1}if(kickX<=0){kickX=0;kickDir=1}const mk=$('#kmark');if(mk)mk.style.left=kickX+'%'},28)}
 function doKick(){if(!kickT)return;clearInterval(kickT);kickT=null;
  const t=today();if(!S.kick||S.kick.d!==t)S.kick={d:t,n:0};S.kick.n++;
  const goal=kickX>=43&&kickX<=57,post=kickX>=35&&kickX<=65;
  const ball=$('#kball');if(ball){ball.style.transition='bottom .55s ease-out, left .55s ease-out';ball.style.bottom='74%';ball.style.left=(12+kickX*0.76)+'%'}
  const msg=$('#kmsg'),go=$('#kgo');if(go)go.disabled=true;
- if(goal){S.kickGoals=(S.kickGoals||0)+1;syncAll();save();if(msg){msg.textContent='¡GOOOL! +'+KICK_XP+' XP';msg.style.color='var(--ac)'}}
- else{save();if(msg){msg.textContent=post?'Pegó en el palo':'Se fue afuera';msg.style.color='var(--mut)'}}}
-function closeKick(){if(kickT){clearInterval(kickT);kickT=null}const m=$('#kickm');if(m)m.remove();render()}
+ if(goal){S.kickGoals=(S.kickGoals||0)+1;syncAll();save();if(msg){msg.textContent='¡Adentro! +'+KICK_XP+' XP';msg.style.color='var(--ac)'}}
+ else{save();if(msg){msg.textContent=post?'Pegó en el palo':'Quedó afuera';msg.style.color='var(--mut)'}}
+ const more=kickToday()<KICK_MAX;
+ setTimeout(()=>{if(tab!=='juego')return;if(more){if(msg)msg.textContent='';startKickAnim()}else{if(msg){msg.textContent='Completaste tus patadas de hoy. Volvé mañana.';msg.style.color='var(--mut)'}}},1300)}
 function render(){
  calc();
+ if(kickT){clearInterval(kickT);kickT=null}
  if(view==='locker'){$('#app').innerHTML=locker();updBanner();return}
- const v={perfil,habilidades,partidos,bronco,lesiones,avisos,logros,campeonatos}[tab]();
- $('#app').innerHTML=`<div class="navw"><button class="nfade l" data-act="navl" aria-label="Ver pestañas anteriores" tabindex="-1">‹</button><nav>${[['perfil','jugador','Jugador'],['habilidades','skills','Skills'],['partidos','partidos','Partidos'],['bronco','bronco','Bronco'],['lesiones','lesiones','Lesiones'],['logros','insignias','Logros'],['campeonatos','trofeo','Campeonatos'],['avisos','avisos','Avisos']].map(([k,e,l])=>`<button data-act="tab" data-t="${k}" class="${k===tab?'on':''}">${icon(e)}${l}</button>`).join('')}</nav><button class="nfade r" data-act="navr" aria-label="Ver más pestañas" tabindex="-1">›</button></div><main>${v}</main>`;
+ const v={perfil,habilidades,partidos,bronco,lesiones,avisos,logros,campeonatos,juego}[tab]();
+ $('#app').innerHTML=`<div class="navw"><button class="nfade l" data-act="navl" aria-label="Ver pestañas anteriores" tabindex="-1">‹</button><nav>${[['perfil','jugador','Jugador'],['habilidades','skills','Skills'],['partidos','partidos','Partidos'],['bronco','bronco','Bronco'],['lesiones','lesiones','Lesiones'],['logros','insignias','Logros'],['campeonatos','trofeo','Campeonatos'],['juego','palos','Palos'],['avisos','avisos','Avisos']].map(([k,e,l])=>`<button data-act="tab" data-t="${k}" class="${k===tab?'on':''}">${icon(e)}${l}</button>`).join('')}</nav><button class="nfade r" data-act="navr" aria-label="Ver más pestañas" tabindex="-1">›</button></div><main>${v}</main>`;
+ if(tab==='juego')startKickAnim();
  const on=$('nav button.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'});
  trackScreen(view==='locker'?'vestuario':tab);saveWidget();
  const nv=$('.navw nav'),nw=$('.navw');if(nv){const upd=()=>{nw.classList.toggle('more-r',nv.scrollLeft+nv.clientWidth<nv.scrollWidth-4);nw.classList.toggle('more-l',nv.scrollLeft>4)};nv.addEventListener('scroll',upd,{passive:true});upd()}
@@ -901,9 +907,7 @@ document.addEventListener('click',e=>{
  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
  if(a==='popok'){const m=$('#popm');if(m)m.remove();pop.shift();showPop();maybeInter();return}
  if(a==='rewardad'){watchReward();return}
- if(a==='kick'){openKick();return}
  if(a==='dokick'){doKick();return}
- if(a==='closekick'){closeKick();return}
  if(a==='owner'){ownerTap();return}
  if(a==='navr'||a==='navl'){const nv=$('.navw nav');if(nv)nv.scrollBy({left:a==='navr'?220:-220,behavior:'smooth'});return}
  if(a==='adpriv'){const am=PL('AdMob');if(am)am.showPrivacyOptionsForm().catch(()=>{});return}
