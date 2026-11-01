@@ -115,6 +115,13 @@ input[type=range]{padding:0;accent-color:var(--ac)}
 .strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .prog{display:flex;align-items:center;gap:12px;margin-bottom:16px}.prog .bar{flex:1;margin:0}
 .modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,18,28,.6)}
+.updgate{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.updgate .gcard{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:24px 20px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.updgate .gcard svg{margin:0 auto 6px}
+.updgate .gcard .k{color:var(--ac);font-size:14px;letter-spacing:.5px;text-transform:uppercase}
+.updgate .gcard h2{margin:4px 0 8px;font-size:26px}
+.updgate .gcard p{color:var(--mut);margin:0 0 18px}
+.updgate .gcard .btn+.btn{margin-top:8px}
 .mcard{width:100%;max-width:320px;background:var(--card);border-radius:22px;padding:22px 20px;text-align:center;border-bottom:6px solid var(--ac2);animation:pop .35s steps(4)}
 .mcard svg{display:block;margin:6px auto 10px;image-rendering:pixelated}
 .mcard h2{margin:0 0 4px;font-size:30px}.mcard p{margin:0 0 16px;color:var(--mut)}
@@ -885,16 +892,31 @@ function render(){
 }
 
 /* Actualizaciones dentro de la app (Google Play). Solo pregunta si hay una versión nueva que todavía no se instaló. */
-let updLis=false;
+let updLis=false,updGateShown=false,updDownloading=false;
 async function updReady(){const au=PL('AppUpdate');if(!au)return;
  if(confirm('La actualización de Mi Rugby está lista. ¿Querés reiniciar la app para instalarla?')){try{await au.completeFlexibleUpdate()}catch(e){}}}
+function updListen(au){if(updLis)return;updLis=true;au.addListener('onFlexibleUpdateStateChange',st=>{if(st&&st.installStatus===11){updDownloading=false;updReady()}})}
+function showUpdGate(au){
+ if(updGateShown||document.getElementById('updgate'))return;
+ updGateShown=true;
+ const g=document.createElement('div');g.id='updgate';g.className='updgate';g.setAttribute('role','dialog');g.setAttribute('aria-modal','true');
+ g.innerHTML=`<div class="gcard">${icon('skills',72)}<div class="k hd">Nueva versión disponible</div><h2 class="hd">Actualizá Mi Rugby</h2><p>Hay una versión nueva de la app. Elegí una opción para continuar.</p>
+  <button class="btn" data-g="now">Actualizar ahora</button>
+  <button class="btn ghost" data-g="wifi">Actualizar con wifi más tarde</button>
+  <button class="btn ghost" data-g="exit">Cancelar</button></div>`;
+ document.body.appendChild(g);
+ g.addEventListener('click',async e=>{const b=e.target.closest('[data-g]');if(!b)return;const a=b.dataset.g;
+  if(a==='now'){try{updListen(au);updDownloading=true;await au.startFlexibleUpdate()}catch(err){updDownloading=false}g.remove()}
+  else if(a==='wifi'){g.remove()}
+  else{const ap=PL('App');if(ap)try{ap.exitApp()}catch(err){}}});
+}
 async function checkUpd(){const au=PL('AppUpdate');if(!au)return;
  try{const i=await au.getAppUpdateInfo();
   if(i.installStatus===11){updReady();return}
-  if(i.updateAvailability!==2||!i.flexibleUpdateAllowed||S.updAsk===today())return;
-  S.updAsk=today();save();
-  if(!updLis){updLis=true;au.addListener('onFlexibleUpdateStateChange',st=>{if(st&&st.installStatus===11)updReady()})}
-  await au.startFlexibleUpdate()}catch(e){}}
+  if(updDownloading)return;
+  if(i.updateAvailability!==2)return;
+  showUpdGate(au);
+ }catch(e){}}
 async function ownerOk(){const c=(prompt('Código')||'').trim().toUpperCase();if(!c)return false;let h='';try{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mirugby:'+c));h=[...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){}
  if(h!=='993d37a1d3c94e773145ed0e3b77fdaeb4f06cafbdef6707a27561e2d3b0e44f'){toast('Código incorrecto.',3000);return false}return true}
 async function ownerTap(){if(!NAT)return;ownTap=(Date.now()-ownT<1500?ownTap:0)+1;ownT=Date.now();if(ownTap<7)return;ownTap=0;
@@ -983,7 +1005,7 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{if(e.target.id==='sv')$('#svv').textContent=e.target.value});
 setInterval(()=>{document.querySelectorAll('[data-until]').forEach(el=>{const t=remain(+el.dataset.until);el.innerHTML=el.tagName==='SPAN'?t:'<b>'+t+'</b>'});if(tab==='perfil'&&view==='main'&&S.inj.some(i=>!i.ok&&i.until&&i.until<=Date.now())&&!$('[data-act="healdue"]'))render();},30000);
 $('#toast').addEventListener('click',e=>{e.currentTarget.hidden=true});setInterval(()=>{if(AD.ok)refreshAdBtns()},30000);setInterval(check,20000);check();applyColor();render();
-if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);{const fa=PL('FirebaseAnalytics');if(fa)try{fa.setCollectionEnabled({enabled:!S.noAds})}catch(e){}}const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
+if(NAT){syncNotifs(false);adsInit();setTimeout(checkUpd,2500);{const fa=PL('FirebaseAnalytics');if(fa)try{fa.setCollectionEnabled({enabled:!S.noAds})}catch(e){}}const ap=PL('App');if(ap)ap.addListener('resume',()=>{syncNotifs(false);render();checkUpd()});if(ap)ap.addListener('backButton',()=>{if(document.getElementById('updgate')){ap.exitApp();return}const m=document.querySelector('.modal');if(m){m.remove();if(m.id==='popm')pop.shift();showPop();return}if(view==='locker'){view='main';render();return}if(tab!=='perfil'){tab='perfil';view='main';render();window.scrollTo(0,0);return}ap.exitApp()})}
 if(!NAT&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
