@@ -479,7 +479,7 @@ function updBanner(){const am=PL('AdMob');if(!am||!AD.ok)return;const want=view=
   (AD.bannerMade?am.resumeBanner():am.showBanner({...adOpts(AD_IDS.banner),adSize:'ADAPTIVE_BANNER',position:'BOTTOM_CENTER',margin:0}).then(()=>{AD.bannerMade=true})).catch(()=>{AD.bannerOn=false;padBanner()})}
  else if(!want&&AD.bannerOn){AD.bannerOn=false;am.hideBanner().catch(()=>{})}
  padBanner()}
-function queueInter(){if(!S.firstSaveDone){S.firstSaveDone=true;save();return}if(!AD.ok||!AD.interReady)return;AD.pendingInter=true;maybeInter()}
+function queueInter(){if(!AD.ok||!AD.interReady)return;AD.pendingInter=true;maybeInter()}
 function maybeInter(){const am=PL('AdMob');if(!am||!AD.pendingInter||pop.length||document.querySelector('.modal'))return;
  AD.pendingInter=false;am.showInterstitial().catch(()=>{AD.interReady=false;prepInter()})}
 function xpInfo(){
